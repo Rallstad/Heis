@@ -1,5 +1,17 @@
 package main
 
+import (
+	. "./elev"
+	"fmt"
+	. "time"
+)
+
 func main() {
-	elev_init()
+	Elev_init()
+	for {
+		Set_motor_dir(1)
+		fmt.Println("STOP")
+		Sleep(2 * Second)
+
+	}
 }
