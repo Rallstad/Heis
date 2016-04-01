@@ -1,5 +1,6 @@
 package driver
 
+
 //in port 4
 const PORT_4_SUBDEVICE = 3
 const PORT_4_CHANNEL_OFFSET = 16
@@ -63,3 +64,4 @@ const BUTTON_DOWN1 = -1
 const BUTTON_UP4 = -1
 const LIGHT_DOWN1 = -1
 const LIGHT_UP4 = -1
+
