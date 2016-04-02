@@ -3,25 +3,17 @@ package main
 import (
 	//. "./elev"
 	. "./driver"
-	. "./orders"
+	//. "./orders"
+	. "./statemachine"
 	//. "./network"
 	//. "fmt"
-	//. "time"
+	. "time"
 )
 
 func main() {
 	Elev_init()
-	for {
-		
-		//Test()
-		Register_order()
-		Set_light()
-		Print_ext_orders()
-		
-		/*Set_motor_dir(1)
+	Sleep(2 * Second)
 
+	SM()
 
-		Elev_set_floor_indicator(Elev_get_floor_sensor_signal())*/
-
-	}
 }
