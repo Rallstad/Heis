@@ -3,7 +3,7 @@ package main
 import (
 	//. "./elev"
 	. "./driver"
-	//. "./orders"
+	. "./orders"
 	. "./statemachine"
 	//. "./network"
 	//. "fmt"
@@ -12,8 +12,9 @@ import (
 
 func main() {
 	Elev_init()
+	Init_orders()
 	Sleep(2 * Second)
 
 	SM()
-
+	
 }
