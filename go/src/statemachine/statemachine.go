@@ -15,7 +15,12 @@ const (
 	MOVING
 	STOPPED
 	DOOR_OPEN
-	
+)
+
+const (
+	stop      = 0
+	move_up   = 1
+	move_down = -1
 )
 
 var state ElevState = IDLE
@@ -23,49 +28,39 @@ var state ElevState = IDLE
 type Elevator struct {
 	Floor int
 	Dir   Elev_dir
-	Order int
-	Order_type int
 }
 
-var Elev = Elevator{Elev_get_floor_sensor_signal(),STOPMOTOR,-1,-1}
+var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR}
 
 func SM() {
 
-	order_up_channel := make(chan int)
-	order_down_channel := make(chan int)
-	order_inside_channel := make(chan int)
 	position_channel := make(chan int)
-	order_channel:=make(chan int)
-	timeout:=make(chan bool,1)
+	order_channel := make(chan int)
+	command_channel := make(chan int)
 
-		
-	go Check_current_order(order_channel)
 	go Elevator_position(position_channel)
-	go Check_order(order_up_channel, order_down_channel, order_inside_channel)
+	go Check_order(order_channel)
 	go orders.Register_order()
 	go orders.Print_orders()
 	go Print_status()
-	go Floor_timeout(timeout)
-	
-	Event_manager(/*order_up_channel, order_down_channel, order_inside_channel,*/order_channel,position_channel)
-	
+
+	go Command_manager(order_channel, position_channel, command_channel)
+	Event_manager(order_channel, position_channel, command_channel)
 
 }
 
-
-
-func Print_status(){
-	for{
-		Println("Current state: ",state)
+func Print_status() {
+	for {
+		Println("Current state: ", state)
 		Println("Current direction: ", Elev.Dir)
 		Println("Current floor: ", Elev.Floor)
 
-		Sleep(1*Second)
+		Sleep(1 * Second)
 	}
 }
 
 func Elevator_position(position_channel chan int) {
-	for{
+	for {
 		floor := Elev_get_floor_sensor_signal()
 		if floor != -1 {
 			position_channel <- floor
@@ -76,130 +71,173 @@ func Elevator_position(position_channel chan int) {
 
 }
 
-func Check_current_order(order_channel chan int){
-	for{
-		Println("Current order: ",Elev.Order)
-		if Elev.Order > -1{
-			order_channel <- Elev.Order
+func Should_stop(floor int, dir Elev_dir, command_channel chan int) {
+	Println("Checking if stop")
+	if orders.Elev_queue.ORDER_INSIDE[floor] == 1 && Elev_get_floor_sensor_signal() > -1 {
+		if floor == 0 || floor == N_FLOOR-1 {
+			state = IDLE
 		}
-		Sleep(100*Millisecond)
+		Println("Should stop order inside")
+		command_channel <- stop
+		Stop_at_floor()
+	} else if dir == UP {
+		Println("Saggy tits")
+		if orders.Elev_queue.ORDER_UP[floor] == 1 {
+			Println("Stopping for order UP")
+			command_channel <- stop
+			Stop_at_floor()
+		} else if floor == N_FLOOR-1 { ///KANSKJE FJERNES
+			Println("Stopping for top floor")
+			//state = IDLE
+			command_channel <- stop
+			Stop_at_floor()
+		} else if orders.Elev_queue.ORDER_DOWN[floor] == 1 && orders.No_orders_above(floor+1) != 0 {
+			command_channel <- stop
+			Stop_at_floor()
+		}
+	} else if dir == DOWN {
+		Println("stiff niples")
+		if orders.Elev_queue.ORDER_DOWN[floor] == 1 {
+			Println("Stopping for order DOWN")
+			command_channel <- stop
+			Stop_at_floor()
+		} else if floor == 0 { ///KANSKJE FJERNES
+			Println("Stopping for bottom floor")
+			//state = IDLE
+			command_channel <- stop
+			Stop_at_floor()
+		} else if orders.Elev_queue.ORDER_UP[floor] == 1 && orders.No_orders_below(floor-1) != 0 {
+			command_channel <- stop
+			Stop_at_floor()
+		}
 	}
 }
 
-func Should_stop(floor int, dir Elev_dir) int {
-	//Println("floor= ", floor)
-	//Println("jeg har liten tiss")
-	if orders.ORDER_INSIDE[floor] == 1 && Elev_get_floor_sensor_signal() >-1 {
-				Println("flat tiss")
-				//orders.ORDER_INSIDE[floor] = 0
-				//orders.ORDER_UP[floor]=0
-				//orders.ORDER_DOWN[floor] =0
-				return 1
-			}
-	if floor == Elev.Order{
-		Println("Hei")
-		return 1
-	}
-	if dir == UP{
-		Println("sannnn")
-		if Elev.Order_type == BUTTON_UP || Elev.Order_type == BUTTON_INSIDE{
-			if orders.ORDER_UP[floor] == 1{
-				return 1
+func Get_next_direction(command_channel chan int) {
+	if Elev.Dir == UP {
+		if orders.No_orders_above(Elev.Floor) == 0 {
+			command_channel <- move_up
+		} else {
+			Elev.Dir = STOPMOTOR
+			command_channel <- stop
+		}
+
+	} else if Elev.Dir == DOWN {
+		if orders.No_orders_below(Elev.Floor) == 0 {
+			command_channel <- move_down
+		} else {
+			Elev.Dir = STOPMOTOR
+			command_channel <- stop
+		}
+	} else if Elev.Dir == STOPMOTOR {
+		for i := Elev.Floor + 1; i < N_FLOOR; i++ {
+			if orders.Elev_queue.ORDER_UP[i] == 1 || orders.Elev_queue.ORDER_DOWN[i] == 1 || orders.Elev_queue.ORDER_INSIDE[i] == 1 {
+				command_channel <- move_up
 			}
 		}
-	}
-	if dir == DOWN{
-		Println("din mig")
-		if Elev.Order_type == BUTTON_DOWN || Elev.Order_type == BUTTON_INSIDE{
-			if orders.ORDER_DOWN[floor] == 1{
-				return 1
+		for i := 0; i < Elev.Floor; i++ {
+			if orders.Elev_queue.ORDER_UP[i] == 1 || orders.Elev_queue.ORDER_DOWN[i] == 1 || orders.Elev_queue.ORDER_INSIDE[i] == 1 {
+				command_channel <- move_down
 			}
 		}
+		if orders.Elev_queue.ORDER_UP[Elev.Floor] == 1 || orders.Elev_queue.ORDER_DOWN[Elev.Floor] == 1 || orders.Elev_queue.ORDER_INSIDE[Elev.Floor] == 1 {
+			command_channel <- stop
+		}
 	}
-	
-	return 0
 }
 
-func Check_order(order_up_channel, order_down_channel, order_inside_channel chan int) {
-	for{
-		//Println("Checking orders")
-		floor:=Elev.Floor
-		dir:=Elev.Dir
-		if orders.No_orders() != 0{
-			state=IDLE
-			Elev.Dir=STOPMOTOR
+func Check_order(order_channel chan int) {
+	for {
+
+		//dir := Elev.Dir
+		if orders.No_orders() != 0 {
+			state = IDLE
+			Elev.Dir = STOPMOTOR
 		}
-		switch state{
+		switch state {
 		case IDLE:
-			Println("FUCK MY ASSSSSS")
+			Println("case idle i check order")
 
-			for i := 0; i < N_FLOOR; i++{
+			for i := 0; i < N_FLOOR; i++ {
 
-				if orders.ORDER_INSIDE[i] == 1{
-					state = MOVING
-					Elev.Order = i;
-					Elev.Order_type = BUTTON_INSIDE
-					//order_inside_channel <- i
+				if orders.Elev_queue.ORDER_INSIDE[i] == 1 {
+					order_channel <- i
+
 				}
-				if orders.ORDER_UP[i] == 1{
-					state = MOVING
-					Elev.Order = i;
-					Elev.Order_type = BUTTON_UP
-					//order_up_channel <- i
+				if orders.Elev_queue.ORDER_UP[i] == 1 {
+					order_channel <- i
+
 				}
-				if orders.ORDER_DOWN[i] == 1{
-					state = MOVING
-					Elev.Order = i;
-					Elev.Order_type = BUTTON_DOWN
-					//order_down_channel <- i
+				if orders.Elev_queue.ORDER_DOWN[i] == 1 {
+					order_channel <- i
 				}
-				
+
 			}
-		
-		case MOVING:
-			if dir == UP{
-				Println("heidinkukksueger")
 
-				if Elev.Order_type == BUTTON_UP || Elev.Order_type == BUTTON_INSIDE{
-					if orders.ORDER_UP[floor] == 1 || orders.ORDER_INSIDE[floor] == 1{
-						Elev.Order = floor
+			/*case MOVING:
+			if dir == UP {
+				Println("moving dir up")
+
+				for i := Elev.Floor; i < N_FLOOR; i++ {
+					if orders.Elev_queue.ORDER_UP[i] == 1 {
+						order_channel <- i
+					} else if orders.Elev_queue.ORDER_INSIDE[i] == 1 {
+						order_channel <- i
+					} else if orders.Elev_queue.ORDER_DOWN[i] == 1 {
+						order_channel <- i
 					}
 				}
 			}
-				
-			if dir == DOWN{
-				if Elev.Order_type == BUTTON_DOWN || Elev.Order_type == BUTTON_INSIDE{
-					if orders.ORDER_DOWN[floor] == 1 || orders.ORDER_INSIDE[floor] == 1{
-						Elev.Order = floor
+			if dir == DOWN {
+				Println("moving dir down")
+				for i := Elev.Floor; i <= 0; i-- {
+					if orders.Elev_queue.ORDER_UP[i] == 1 {
+						order_channel <- i
+					} else if orders.Elev_queue.ORDER_INSIDE[i] == 1 {
+						order_channel <- i
+					} else if orders.Elev_queue.ORDER_DOWN[i] == 1 {
+						order_channel <- i
 					}
 				}
-			}
-			
+			}*/
 		}
-
-
-		
 		Sleep(100 * Millisecond)
 	}
 }
 
-func Event_manager(/*order_up_channel chan int,order_down_channel chan int,
-	order_inside_channel chan int,*/order_channel chan int, position_channel chan int) {
+func Command_manager(order_channel chan int, position_channel chan int, command_channel chan int) {
 	for {
 
-
 		select {
-		
+		case command := <-command_channel:
+			switch command {
+			case stop:
+				Println("Received STOP command")
+				Elev_set_motor_direction(STOPMOTOR)
+				//Stop_at_floor()
+				break
+			case move_up:
+				Println("Received MOVEUP command")
+				Elev_set_motor_direction(UP)
+				Elev.Dir = UP
+				break
+			case move_down:
+				Println("Received MOVEDOWN command")
+				Elev_set_motor_direction(DOWN)
+				Elev.Dir = DOWN
+				break
+			}
+		}
+	}
+}
 
-		case current_order := <- order_channel:
-			Println("Received Order")
-			Move_to_floor(current_order)
+func Event_manager(order_channel chan int, position_channel chan int, command_channel chan int) {
+	for {
+		select {
 		case current_floor := <-position_channel:
 			Elev.Floor = current_floor
-			if Should_stop(current_floor, Elev.Dir) != 0 {
-				Stop_at_floor()
-			}
-			
+			Should_stop(current_floor, Elev.Dir, command_channel)
+			Get_next_direction(command_channel)
 
 		}
 	}
@@ -208,55 +246,37 @@ func Event_manager(/*order_up_channel chan int,order_down_channel chan int,
 func Stop_at_floor() {
 	Println("Stopping at floor", Elev.Floor)
 	orders.Clear_orders_at_floor(Elev.Floor)
-	if Elev.Floor == Elev.Order{
-		Elev.Order = -1
-		state = IDLE
-	} //else if Elev.Floor == Elev.Order{
-	//	Elev.Order = -1
-	//}
 	orders.Clear_lights_at_floor(Elev.Floor)
-	Elev_set_motor_direction(0)
-	if Elev.Floor == 0{
-		Elev.Dir = STOPMOTOR
+	Elev_set_motor_direction(STOPMOTOR)
+
+	if Elev.Floor == 0 {
+		Elev.Dir = UP
 	}
-	if Elev.Floor == N_FLOOR -1{
-		Elev.Dir = STOPMOTOR
+	if Elev.Floor == N_FLOOR-1 {
+		Elev.Dir = DOWN
 	}
 	Elev_set_door_open_lamp(1)
 	Sleep(2 * Second)
 	Elev_set_door_open_lamp(0)
 }
 
+func Move_to_floor(floor int) {
 
-
-func Move_to_floor(floor int){
-
-	if floor > -1{
-		Println("Moving to floor: ",floor)
-		if floor < Elev.Floor{
+	if floor > -1 {
+		Println("Moving to floor: ", floor)
+		if floor < Elev.Floor {
 			Elev_set_motor_direction(DOWN)
-			Elev.Dir=DOWN
-			state=MOVING
+			Elev.Dir = DOWN
+			state = MOVING
 		}
-		if floor > Elev.Floor{
+		if floor > Elev.Floor {
 			Elev_set_motor_direction(UP)
-			Elev.Dir=UP
-			state=MOVING
+			Elev.Dir = UP
+			state = MOVING
 		}
-		if floor == Elev.Floor && Elev_get_floor_sensor_signal() >-1{
-			
+		if floor == Elev.Floor && Elev_get_floor_sensor_signal() > -1 {
+
 			Stop_at_floor()
 		}
 	}
 }
-
-func Floor_timeout(timeout chan bool){
-	for{
-		Sleep(10 * Second)
-		timeout <- true
-	}
-
-	Sleep(100 * Millisecond)
-	
-}
-		
