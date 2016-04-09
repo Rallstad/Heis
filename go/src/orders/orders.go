@@ -14,6 +14,12 @@ type Queue struct {
 	ORDER_INSIDE [N_FLOOR]int
 }
 
+type External_order struct {
+	Floor       int
+	Button_type int
+	Cost        int
+}
+
 var Elev_queue Queue
 
 func Init_orders() {
@@ -26,10 +32,10 @@ func Init_orders() {
 	Elev_queue.ORDER_DOWN[0] = -1
 }
 
-func Register_order() {
+func Register_order(order chan External_order) {
 	for {
-		Register_order_up()
-		Register_order_down()
+		Register_order_up(order)
+		Register_order_down(order)
 		Register_order_inside()
 
 		Set_light()
@@ -38,19 +44,19 @@ func Register_order() {
 
 }
 
-func Register_order_up() {
+func Register_order_up(order chan External_order) {
 	for i := 0; i < N_FLOOR-1; i++ {
 		if Elev_get_button_signal(BUTTON_UP, i) > 0 {
-			Elev_queue.ORDER_UP[i] = 1
+			order <- External_order{Floor: i, Button_type: BUTTON_UP}
 		}
 	}
 
 }
 
-func Register_order_down() {
+func Register_order_down(order chan External_order) {
 	for i := 1; i < N_FLOOR; i++ {
 		if Elev_get_button_signal(BUTTON_DOWN, i) > 0 {
-			Elev_queue.ORDER_DOWN[i] = 1
+			order <- External_order{Floor: i, Button_type: BUTTON_DOWN}
 		}
 	}
 
@@ -63,6 +69,21 @@ func Register_order_inside() {
 		}
 	}
 
+}
+
+func Calculate_cost(elev_pos int, order External_order, elev_dir Elev_dir) External_order {
+	order.Cost = 0
+	order_dir := elev_pos - order.Floor
+	if order_dir*int(elev_dir) > 0 {
+		order.Cost += 10
+	} else if order_dir*int(elev_dir) < 0 {
+		if elev_dir == UP && order.Button_type == BUTTON_DOWN {
+			order.Cost += 3
+		} else if elev_dir == DOWN && order.Button_type == BUTTON_UP {
+			order.Cost += 3
+		}
+	}
+	return order
 }
 
 func Clear_orders_at_floor(floor int) {

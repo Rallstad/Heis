@@ -1,45 +1,26 @@
 package message
 
-import (
-	"encoding/json"
-)
+import "../orders"
+
 //Message ID
-const(
-	Ping = 1
-	ElevatorStateUpdate = 2
-	NewOrder = 3
+const (
+	Ping            = 1
+	Elev_move       = 2
+	New_order       = 3
+	Elev_delete     = 4
+	Elev_add        = 5
+	Calc_cost       = 6
+	Cost_calculated = 7
 )
 
-type UDPMessage struct{
+type UDPMessage struct {
 	MessageId int
-	IP string
-	OrderQueue [12]int// 
-	ElevatorStateUpdate [2]int // [0] = state, [1] = position
-	Checksum int 
+	Source    int
+	Target    int
+	Order     orders.External_order
 }
 
-func UDPMessageEncode(Msg UDPMessage)([]byte, error){
-	return json.Marshal(Msg)
-}
-
-func UDPMessageDecode(Msg *UDPMessage, UDParray []byte){
-	json.Unmarshal(UDParray, Msg)
-}
-
-func CalculateChecksum(Msg *UDPMessage)int{ // not a very good crc, just for testing 
-	c := Msg.MessageId%7+Msg.OrderQueue[0]%7+Msg.ElevatorStateUpdate[0]%7
+/*func CalculateChecksum(Msg *UDPMessage) int { // not a very good crc, just for testing
+	c := Msg.MessageId%7 + Msg.OrderQueue[0]%7 + Msg.ElevatorStateUpdate[0]%7
 	return c
-}
-
-////Main function for testing/////////////////////////
-// func main(){
-// 	var msg = UDPMessage{10,"hallo",71,32,43, 23}
-// 	b,_ :=UDPMessageEncode(msg)
-// 	var msg2 UDPMessage
-// 	UDPMessageDecode(&msg2,b)
-// 	fmt.Println(msg)
-// 	fmt.Println(b)
-// 	fmt.Println(msg2)
-// 	fmt.Println(CalculateChecksum(&msg2)
-// 	fmt.Println(CalculateChecksum(&msg))
-// }
+}*/

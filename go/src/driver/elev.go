@@ -38,6 +38,7 @@ func Elev_init() {
 
 	}
 	Elev_set_motor_direction(STOPMOTOR)
+	fmt.Println("--------------------------------------------------")
 	fmt.Println("Initialized at floor ", Elev_get_floor_sensor_signal())
 }
 

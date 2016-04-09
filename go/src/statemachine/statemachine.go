@@ -2,6 +2,8 @@ package statemachine
 
 import (
 	. "../driver"
+	. "../message"
+	. "../network"
 	"../orders"
 	. "fmt"
 	. "time"
@@ -34,18 +36,23 @@ var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR}
 
 func SM() {
 
+	from_SM := make(chan UDPMessage)
+	to_SM := make(chan UDPMessage)
+
 	position_channel := make(chan int)
 	order_channel := make(chan int)
+	ext_order_channel := make(chan orders.External_order)
 	command_channel := make(chan int)
 
 	go Elevator_position(position_channel)
 	go Check_order(order_channel)
-	go orders.Register_order()
+	go orders.Register_order(ext_order_channel)
 	go orders.Print_orders()
 	go Print_status()
+	go Network_manager(from_SM, to_SM)
+	go Command_manager(command_channel)
 
-	go Command_manager(order_channel, position_channel, command_channel)
-	Event_manager(order_channel, position_channel, command_channel)
+	Event_manager(ext_order_channel, order_channel, position_channel, command_channel, from_SM, to_SM)
 
 }
 
@@ -54,8 +61,7 @@ func Print_status() {
 		Println("Current state: ", state)
 		Println("Current direction: ", Elev.Dir)
 		Println("Current floor: ", Elev.Floor)
-
-		Sleep(1 * Second)
+		Sleep(2 * Second)
 	}
 }
 
@@ -88,7 +94,6 @@ func Should_stop(floor int, dir Elev_dir, command_channel chan int) {
 			Stop_at_floor()
 		} else if floor == N_FLOOR-1 { ///KANSKJE FJERNES
 			Println("Stopping for top floor")
-			//state = IDLE
 			command_channel <- stop
 			Stop_at_floor()
 		} else if orders.Elev_queue.ORDER_DOWN[floor] == 1 && orders.No_orders_above(floor+1) != 0 {
@@ -103,7 +108,6 @@ func Should_stop(floor int, dir Elev_dir, command_channel chan int) {
 			Stop_at_floor()
 		} else if floor == 0 { ///KANSKJE FJERNES
 			Println("Stopping for bottom floor")
-			//state = IDLE
 			command_channel <- stop
 			Stop_at_floor()
 		} else if orders.Elev_queue.ORDER_UP[floor] == 1 && orders.No_orders_below(floor-1) != 0 {
@@ -148,8 +152,6 @@ func Get_next_direction(command_channel chan int) {
 
 func Check_order(order_channel chan int) {
 	for {
-
-		//dir := Elev.Dir
 		if orders.No_orders() != 0 {
 			state = IDLE
 			Elev.Dir = STOPMOTOR
@@ -174,38 +176,12 @@ func Check_order(order_channel chan int) {
 
 			}
 
-			/*case MOVING:
-			if dir == UP {
-				Println("moving dir up")
-
-				for i := Elev.Floor; i < N_FLOOR; i++ {
-					if orders.Elev_queue.ORDER_UP[i] == 1 {
-						order_channel <- i
-					} else if orders.Elev_queue.ORDER_INSIDE[i] == 1 {
-						order_channel <- i
-					} else if orders.Elev_queue.ORDER_DOWN[i] == 1 {
-						order_channel <- i
-					}
-				}
-			}
-			if dir == DOWN {
-				Println("moving dir down")
-				for i := Elev.Floor; i <= 0; i-- {
-					if orders.Elev_queue.ORDER_UP[i] == 1 {
-						order_channel <- i
-					} else if orders.Elev_queue.ORDER_INSIDE[i] == 1 {
-						order_channel <- i
-					} else if orders.Elev_queue.ORDER_DOWN[i] == 1 {
-						order_channel <- i
-					}
-				}
-			}*/
 		}
 		Sleep(100 * Millisecond)
 	}
 }
 
-func Command_manager(order_channel chan int, position_channel chan int, command_channel chan int) {
+func Command_manager(command_channel chan int) {
 	for {
 
 		select {
@@ -214,7 +190,6 @@ func Command_manager(order_channel chan int, position_channel chan int, command_
 			case stop:
 				Println("Received STOP command")
 				Elev_set_motor_direction(STOPMOTOR)
-				//Stop_at_floor()
 				break
 			case move_up:
 				Println("Received MOVEUP command")
@@ -231,7 +206,7 @@ func Command_manager(order_channel chan int, position_channel chan int, command_
 	}
 }
 
-func Event_manager(order_channel chan int, position_channel chan int, command_channel chan int) {
+func Event_manager(ext_order_channel chan orders.External_order, order_channel chan int, position_channel chan int, command_channel chan int, from_SM chan UDPMessage, to_SM chan UDPMessage) {
 	for {
 		select {
 		case current_floor := <-position_channel:
@@ -239,6 +214,23 @@ func Event_manager(order_channel chan int, position_channel chan int, command_ch
 			Should_stop(current_floor, Elev.Dir, command_channel)
 			Get_next_direction(command_channel)
 
+		case new_order := <-ext_order_channel:
+			from_SM <- UDPMessage{MessageId: Calc_cost, Order: new_order}
+		case message := <-to_SM:
+			switch message.MessageId {
+			case Calc_cost:
+				order_and_cost := orders.Calculate_cost(Elev.Floor, message.Order, Elev.Dir)
+				from_SM <- UDPMessage{MessageId: Cost_calculated, Order: order_and_cost}
+			case New_order:
+				if message.Target == Get_self_id() {
+					if message.Order.Button_type == BUTTON_UP {
+						orders.Elev_queue.ORDER_UP[message.Order.Floor] = 1
+					} else if message.Order.Button_type == BUTTON_DOWN {
+						orders.Elev_queue.ORDER_DOWN[message.Order.Floor] = 1
+					}
+
+				}
+			}
 		}
 	}
 }
@@ -258,25 +250,4 @@ func Stop_at_floor() {
 	Elev_set_door_open_lamp(1)
 	Sleep(2 * Second)
 	Elev_set_door_open_lamp(0)
-}
-
-func Move_to_floor(floor int) {
-
-	if floor > -1 {
-		Println("Moving to floor: ", floor)
-		if floor < Elev.Floor {
-			Elev_set_motor_direction(DOWN)
-			Elev.Dir = DOWN
-			state = MOVING
-		}
-		if floor > Elev.Floor {
-			Elev_set_motor_direction(UP)
-			Elev.Dir = UP
-			state = MOVING
-		}
-		if floor == Elev.Floor && Elev_get_floor_sensor_signal() > -1 {
-
-			Stop_at_floor()
-		}
-	}
 }
