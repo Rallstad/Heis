@@ -47,6 +47,7 @@ func Register_order_up(order chan External_order) {
 	for i := 0; i < N_FLOOR-1; i++ {
 		if Elev_get_button_signal(BUTTON_UP, i) > 0 {
 			order <- External_order{Floor: i, Button_type: BUTTON_UP}
+			Sleep(100 * Millisecond)
 		}
 	}
 
@@ -56,6 +57,7 @@ func Register_order_down(order chan External_order) {
 	for i := 1; i < N_FLOOR; i++ {
 		if Elev_get_button_signal(BUTTON_DOWN, i) > 0 {
 			order <- External_order{Floor: i, Button_type: BUTTON_DOWN}
+			Sleep(100 * Millisecond)
 		}
 	}
 
@@ -189,6 +191,14 @@ func Set_light() {
 			Elev_set_button_lamp(BUTTON_INSIDE, i, 1)
 		}
 	}
+}
+
+func Set_ext_light(order External_order) {
+	Elev_set_button_lamp(order.Button_type, order.Floor, 1)
+}
+
+func Clear_ext_light(order External_order) {
+	Elev_set_button_lamp(order.Button_type, order.Floor, 0)
 }
 
 func Print_orders() {

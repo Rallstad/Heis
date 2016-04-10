@@ -41,11 +41,13 @@ func (elev *Elev_manager) choose_master() {
 		}
 	}
 	elev.Master = current_min
+	Println("Master is ", elev.Master)
 }
 
 func (elev *Elev_manager) Add_elevator(message UDPMessage) { //might need to_network channel
 	elev.All_elevators[message.Source] = new(Elevator)
 	Println("Elevator ", message.Source, " is added")
+	elev.choose_master()
 }
 
 func (elev *Elev_manager) Delete_elevator(id int, to_SM chan UDPMessage) {

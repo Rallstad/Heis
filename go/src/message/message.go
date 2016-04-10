@@ -8,16 +8,16 @@ const (
 	Elev_move       = 2
 	New_order       = 3
 	Order_assigned  = 4
-	Elev_delete     = 5
-	Elev_add        = 6
-	Calc_cost       = 7
-	Cost_calculated = 8
+	Order_completed = 5
+	Elev_delete     = 6
+	Elev_add        = 7
 )
 
 type UDPMessage struct {
 	MessageId int
 	Source    int
 	Target    int
+	Floor     int
 	Order     orders.External_order
 }
 
