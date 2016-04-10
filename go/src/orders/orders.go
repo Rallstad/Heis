@@ -82,6 +82,7 @@ func Place_order(order External_order) {
 }
 
 func Calculate_cost(elev_pos int, elev_dir Elev_dir, order External_order) int {
+
 	cost := 0
 	if elev_pos == order.Floor && elev_dir == STOPMOTOR {
 		return cost
@@ -96,9 +97,9 @@ func Calculate_cost(elev_pos int, elev_dir Elev_dir, order External_order) int {
 		cost += 10
 	} else if order_dir*int(elev_dir) < 0 {
 		if elev_dir == UP && order.Button_type == BUTTON_DOWN {
-			cost += 3
+			cost += 4
 		} else if elev_dir == DOWN && order.Button_type == BUTTON_UP {
-			cost += 3
+			cost += 4
 		}
 	}
 

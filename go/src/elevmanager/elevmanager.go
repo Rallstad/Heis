@@ -44,6 +44,13 @@ func (elev *Elev_manager) choose_master() {
 	Println("Master is ", elev.Master)
 }
 
+func (elev *Elev_manager) Set_elev_floor(message UDPMessage) {
+	_, ok := elev.All_elevators[message.Source]
+	if ok {
+		elev.All_elevators[message.Source].Floor = message.Floor
+	}
+}
+
 func (elev *Elev_manager) Add_elevator(message UDPMessage) { //might need to_network channel
 	elev.All_elevators[message.Source] = new(Elevator)
 	Println("Elevator ", message.Source, " is added")
