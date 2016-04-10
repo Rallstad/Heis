@@ -67,6 +67,8 @@ func (elev *Elev_manager) Assign_external_order(order External_order) int {
 	elev_cost := make(map[int]int)
 	for elevator, _ := range elev.All_elevators {
 		elev_cost[elevator] = Calculate_cost(elev.All_elevators[elevator].Floor, elev.All_elevators[elevator].Dir, order)
+		Println("Cost for ", elevator, ": ", elev_cost[elevator])
+		Println("Elevator ", elevator, "is on floor", elev.All_elevators[elevator].Floor)
 	}
 	best_elevator := -1
 	min_cost := 1000
