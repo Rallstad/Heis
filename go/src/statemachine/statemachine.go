@@ -74,6 +74,7 @@ func Elevator_position(position_channel chan int) {
 }
 
 func Should_stop(floor int, dir Elev_dir, command_channel chan int, from_SM chan UDPMessage) {
+	from_SM <- UDPMessage{Floor: floor}
 	//Println("Checking if stop")
 	if orders.Elev_queue.ORDER_INSIDE[floor] == 1 && Elev_get_floor_sensor_signal() > -1 {
 		if floor == 0 || floor == N_FLOOR-1 {
@@ -235,7 +236,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				//Println("ext_butt_pushed_New_order")
 				orders.Set_ext_light(message.Order)
 				if elev.Self_id == elev.Master {
-					from_SM <- UDPMessage{MessageId: Order_assigned, Target: elev.Assign_external_order(message.Order), Order: message.Order}
+					from_SM <- UDPMessage{MessageId: Order_assigned, Target: elev.Assign_external_order(message.Order), Order: message.Order, Floor: Elev.Floor}
 				}
 				break
 			case Order_assigned:
