@@ -18,6 +18,7 @@ type UDPMessage struct {
 	Source    int
 	Target    int
 	Floor     int
+	State     [2]int
 	Order     orders.External_order
 }
 

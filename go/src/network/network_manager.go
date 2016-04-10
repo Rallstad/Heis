@@ -3,7 +3,7 @@ package network
 import (
 	. "../UDP"
 	. "../message"
-	"fmt"
+	//"fmt"
 	"net"
 	"time"
 )
@@ -52,7 +52,7 @@ func Network_manager(from_SM chan UDPMessage, to_SM chan UDPMessage) {
 			to_SM <- message
 
 		case message := <-from_SM:
-			fmt.Println("Network manager received from SM")
+			//fmt.Println("Network manager received from SM")
 			message.Source = self_id
 			UDP_send <- message
 		}
