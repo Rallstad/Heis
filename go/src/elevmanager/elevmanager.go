@@ -66,5 +66,6 @@ func (elev *Elev_manager) Assign_external_order(order External_order) int {
 			best_elevator = elevator
 		}
 	}
+	Println("Ordertype ", order.Button_type, " in floor ", order.Floor, "assigned to elev", best_elevator)
 	return best_elevator
 }

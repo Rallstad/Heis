@@ -43,8 +43,8 @@ func SM() {
 	go Elevator_position(position_channel)
 	go Check_order(order_channel)
 	go orders.Register_order(ext_order_channel)
-	//	go orders.Print_orders()
-	//	go Print_status()
+	go orders.Print_orders()
+	go Print_status()
 	go Network_manager(from_SM, to_SM)
 	go Command_manager(command_channel)
 
@@ -74,12 +74,12 @@ func Elevator_position(position_channel chan int) {
 }
 
 func Should_stop(floor int, dir Elev_dir, command_channel chan int) {
-	//Println("Checking if stop")
+	Println("Checking if stop")
 	if orders.Elev_queue.ORDER_INSIDE[floor] == 1 && Elev_get_floor_sensor_signal() > -1 {
 		if floor == 0 || floor == N_FLOOR-1 {
 			state = IDLE
 		}
-		//Println("Should stop order inside")
+		Println("Should stop order inside")
 		command_channel <- stop
 		Stop_at_floor()
 	} else if dir == UP {
@@ -107,6 +107,12 @@ func Should_stop(floor int, dir Elev_dir, command_channel chan int) {
 			command_channel <- stop
 			Stop_at_floor()
 		} else if orders.Elev_queue.ORDER_UP[floor] == 1 && orders.No_orders_below(floor-1) != 0 {
+			command_channel <- stop
+			Stop_at_floor()
+		}
+	} else if dir == STOPMOTOR {
+		Println("Fat ass")
+		if orders.Elev_queue.ORDER_UP[floor] == 1 || orders.Elev_queue.ORDER_DOWN[floor] == 1 {
 			command_channel <- stop
 			Stop_at_floor()
 		}
@@ -154,7 +160,7 @@ func Check_order(order_channel chan int) {
 		}
 		switch state {
 		case IDLE:
-			//Println("case idle i check order")
+			Println("case idle i check order")
 
 			for i := 0; i < N_FLOOR; i++ {
 
@@ -210,21 +216,28 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 			switch message.MessageId {
 			case Elev_add:
 				elev.Add_elevator(message)
+				break
 			case New_order:
+				Println("ext_butt_pushed_New_order")
 				if elev.Self_id == elev.Master {
 					from_SM <- UDPMessage{MessageId: Order_assigned, Target: elev.Assign_external_order(message.Order), Order: message.Order}
 				}
+				break
 			case Order_assigned:
+				Println(" ord ass")
 				if message.Target == elev.Self_id {
 					orders.Place_order(message.Order)
 				}
+				break
 			}
 		case current_floor := <-position_channel:
+			Println("curr fl")
 			Elev.Floor = current_floor
 			Should_stop(current_floor, Elev.Dir, command_channel)
 			Get_next_direction(command_channel)
 
 		case ext_order := <-ext_order_channel:
+			Println("ext_order")
 			from_SM <- UDPMessage{MessageId: New_order, Order: ext_order}
 
 		}
