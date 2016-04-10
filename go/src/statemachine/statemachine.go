@@ -32,19 +32,19 @@ var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR}
 
 func SM() {
 
-	from_SM := make(chan UDPMessage)
-	to_SM := make(chan UDPMessage)
+	from_SM := make(chan UDPMessage, 100)
+	to_SM := make(chan UDPMessage, 100)
 
-	position_channel := make(chan int)
-	order_channel := make(chan int)
-	ext_order_channel := make(chan orders.External_order)
-	command_channel := make(chan int)
+	position_channel := make(chan int, 100)
+	order_channel := make(chan int, 100)
+	ext_order_channel := make(chan orders.External_order, 100)
+	command_channel := make(chan int, 100)
 
 	go Elevator_position(position_channel)
 	//go Check_order(order_channel)
 	go orders.Register_order(ext_order_channel)
 	go orders.Print_orders()
-	//go Print_status()
+	go Print_status()
 	go Network_manager(from_SM, to_SM)
 	go Command_manager(command_channel)
 
@@ -129,6 +129,7 @@ func Should_stop(floor int, dir Elev_dir, command_channel chan int, from_SM chan
 }
 
 func Get_next_direction(command_channel chan int) {
+	Println("Getting next direction")
 	if Elev.Dir == UP {
 		if orders.No_orders_above(Elev.Floor) == 0 {
 			command_channel <- move_up
@@ -227,6 +228,8 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 			case Elev_add:
 				elev.Add_elevator(message)
 				break
+			case Elev_delete:
+				elev.Delete_elevator(message.Source)
 			case New_order:
 				Println("ext_butt_pushed_New_order")
 				orders.Set_ext_light(message.Order)
