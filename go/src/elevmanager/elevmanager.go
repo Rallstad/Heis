@@ -52,6 +52,7 @@ func (elev *Elev_manager) Add_elevator(message UDPMessage) { //might need to_net
 
 func (elev *Elev_manager) Delete_elevator(id int) {
 	delete(elev.All_elevators, id)
+	elev.choose_master()
 	Println("Elevator ", id, " is removed")
 }
 
