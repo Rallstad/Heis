@@ -203,21 +203,29 @@ func Command_manager(command_channel chan int) {
 }
 
 func Event_manager(ext_order_channel chan orders.External_order, order_channel chan int, position_channel chan int, command_channel chan int, from_SM chan UDPMessage, to_SM chan UDPMessage) {
-	elev_manager := Make_elev_manager()
+	elev := Make_elev_manager()
 	for {
 		select {
 		case message := <-to_SM:
 			switch message.MessageId {
 			case Elev_add:
-				elev_manager.Add_elevator(message)
+				elev.Add_elevator(message)
+			case New_order:
+				if elev.Self_id == elev.Master {
+					from_SM <- UDPMessage{MessageId: Order_assigned, Target: elev.Assign_external_order(message.Order), Order: message.Order}
+				}
+			case Order_assigned:
+				if message.Target == elev.Self_id {
+					orders.Place_order(message.Order)
+				}
 			}
 		case current_floor := <-position_channel:
 			Elev.Floor = current_floor
 			Should_stop(current_floor, Elev.Dir, command_channel)
 			Get_next_direction(command_channel)
 
-			/*case new_order := <-ext_order_channel:
-			from_SM <- UDPMessage{MessageId: Calc_cost, Order: new_order}*/
+		case ext_order := <-ext_order_channel:
+			from_SM <- UDPMessage{MessageId: New_order, Order: ext_order}
 
 		}
 	}

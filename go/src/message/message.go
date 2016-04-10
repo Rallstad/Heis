@@ -7,10 +7,11 @@ const (
 	Ping            = 1
 	Elev_move       = 2
 	New_order       = 3
-	Elev_delete     = 4
-	Elev_add        = 5
-	Calc_cost       = 6
-	Cost_calculated = 7
+	Order_assigned  = 4
+	Elev_delete     = 5
+	Elev_add        = 6
+	Calc_cost       = 7
+	Cost_calculated = 8
 )
 
 type UDPMessage struct {

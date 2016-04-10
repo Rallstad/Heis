@@ -70,6 +70,15 @@ func Register_order_inside() {
 
 }
 
+func Place_order(order External_order) {
+	if order.Button_type == BUTTON_UP {
+		Elev_queue.ORDER_UP[order.Floor] = 1
+	}
+	if order.Button_type == BUTTON_DOWN {
+		Elev_queue.ORDER_DOWN[order.Floor] = 1
+	}
+}
+
 func Calculate_cost(elev_pos int, elev_dir Elev_dir, order External_order) int {
 	cost := 0
 	order_dir := elev_pos - order.Floor

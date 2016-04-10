@@ -14,49 +14,49 @@ type Elevator struct {
 	//ORDER_INSIDE [N_FLOOR]int
 }
 
-type elev_manager struct {
-	self_id         int
-	all_elevators   map[int]*Elevator
-	external_orders [2][N_FLOOR]int
-	master          int
+type Elev_manager struct {
+	Self_id         int
+	All_elevators   map[int]*Elevator
+	External_orders [2][N_FLOOR]int
+	Master          int
 }
 
-func Make_elev_manager() elev_manager {
-	var elev elev_manager
-	elev.all_elevators = make(map[int]*Elevator)
+func Make_elev_manager() Elev_manager {
+	var elev Elev_manager
+	elev.All_elevators = make(map[int]*Elevator)
 	addr, _ := net.InterfaceAddrs()
-	elev.self_id = int(addr[1].String()[12]-'0')*100 + int(addr[1].String()[13]-'0')*10 + int(addr[1].String()[14]-'0')
-	elev.all_elevators[elev.self_id] = new(Elevator)
+	elev.Self_id = int(addr[1].String()[12]-'0')*100 + int(addr[1].String()[13]-'0')*10 + int(addr[1].String()[14]-'0')
+	elev.All_elevators[elev.Self_id] = new(Elevator)
 
-	elev.all_elevators[elev.self_id].Floor = Elev_get_floor_sensor_signal()
+	elev.All_elevators[elev.Self_id].Floor = Elev_get_floor_sensor_signal()
 	elev.choose_master()
 	return elev
 }
 
-func (elev *elev_manager) choose_master() {
+func (elev *Elev_manager) choose_master() {
 	current_min := 255
-	for id := range elev.all_elevators {
+	for id := range elev.All_elevators {
 		if id < current_min {
 			current_min = id
 		}
 	}
-	elev.master = current_min
+	elev.Master = current_min
 }
 
-func (elev *elev_manager) Add_elevator(message UDPMessage) { //might need to_network channel
-	elev.all_elevators[message.Source] = new(Elevator)
+func (elev *Elev_manager) Add_elevator(message UDPMessage) { //might need to_network channel
+	elev.All_elevators[message.Source] = new(Elevator)
 	Println("Elevator ", message.Source, " is added")
 }
 
-func (elev *elev_manager) Delete_elevator(id int, to_SM chan UDPMessage) {
-	delete(elev.all_elevators, id)
+func (elev *Elev_manager) Delete_elevator(id int, to_SM chan UDPMessage) {
+	delete(elev.All_elevators, id)
 	Println("Elevator ", id, " is removed")
 }
 
-func (elev *elev_manager) Assign_external_order(order External_order) int {
+func (elev *Elev_manager) Assign_external_order(order External_order) int {
 	elev_cost := make(map[int]int)
-	for elevator, _ := range elev.all_elevators {
-		elev_cost[elevator] = Calculate_cost(elev.all_elevators[elevator].Floor, elev.all_elevators[elevator].Dir, order)
+	for elevator, _ := range elev.All_elevators {
+		elev_cost[elevator] = Calculate_cost(elev.All_elevators[elevator].Floor, elev.All_elevators[elevator].Dir, order)
 	}
 	best_elevator := -1
 	min_cost := 1000
