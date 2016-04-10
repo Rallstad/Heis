@@ -17,7 +17,6 @@ type Queue struct {
 type External_order struct {
 	Floor       int
 	Button_type int
-	Cost        int
 }
 
 var Elev_queue Queue
@@ -71,19 +70,19 @@ func Register_order_inside() {
 
 }
 
-func Calculate_cost(elev_pos int, order External_order, elev_dir Elev_dir) External_order {
-	order.Cost = 0
+func Calculate_cost(elev_pos int, elev_dir Elev_dir, order External_order) int {
+	cost := 0
 	order_dir := elev_pos - order.Floor
 	if order_dir*int(elev_dir) > 0 {
-		order.Cost += 10
+		cost += 10
 	} else if order_dir*int(elev_dir) < 0 {
 		if elev_dir == UP && order.Button_type == BUTTON_DOWN {
-			order.Cost += 3
+			cost += 3
 		} else if elev_dir == DOWN && order.Button_type == BUTTON_UP {
-			order.Cost += 3
+			cost += 3
 		}
 	}
-	return order
+	return cost
 }
 
 func Clear_orders_at_floor(floor int) {
@@ -126,7 +125,7 @@ func No_orders() int {
 			return 0
 		}
 	}
-	Println("NO MORE ORDERS")
+	//	Println("NO MORE ORDERS")
 	return 1
 }
 

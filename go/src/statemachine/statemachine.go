@@ -2,6 +2,7 @@ package statemachine
 
 import (
 	. "../driver"
+	. "../elevmanager"
 	. "../message"
 	. "../network"
 	"../orders"
@@ -27,11 +28,6 @@ const (
 
 var state ElevState = IDLE
 
-type Elevator struct {
-	Floor int
-	Dir   Elev_dir
-}
-
 var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR}
 
 func SM() {
@@ -47,8 +43,8 @@ func SM() {
 	go Elevator_position(position_channel)
 	go Check_order(order_channel)
 	go orders.Register_order(ext_order_channel)
-	go orders.Print_orders()
-	go Print_status()
+	//	go orders.Print_orders()
+	//	go Print_status()
 	go Network_manager(from_SM, to_SM)
 	go Command_manager(command_channel)
 
@@ -78,12 +74,12 @@ func Elevator_position(position_channel chan int) {
 }
 
 func Should_stop(floor int, dir Elev_dir, command_channel chan int) {
-	Println("Checking if stop")
+	//Println("Checking if stop")
 	if orders.Elev_queue.ORDER_INSIDE[floor] == 1 && Elev_get_floor_sensor_signal() > -1 {
 		if floor == 0 || floor == N_FLOOR-1 {
 			state = IDLE
 		}
-		Println("Should stop order inside")
+		//Println("Should stop order inside")
 		command_channel <- stop
 		Stop_at_floor()
 	} else if dir == UP {
@@ -158,7 +154,7 @@ func Check_order(order_channel chan int) {
 		}
 		switch state {
 		case IDLE:
-			Println("case idle i check order")
+			//Println("case idle i check order")
 
 			for i := 0; i < N_FLOOR; i++ {
 
@@ -207,30 +203,22 @@ func Command_manager(command_channel chan int) {
 }
 
 func Event_manager(ext_order_channel chan orders.External_order, order_channel chan int, position_channel chan int, command_channel chan int, from_SM chan UDPMessage, to_SM chan UDPMessage) {
+	elev_manager := Make_elev_manager()
 	for {
 		select {
+		case message := <-to_SM:
+			switch message.MessageId {
+			case Elev_add:
+				elev_manager.Add_elevator(message)
+			}
 		case current_floor := <-position_channel:
 			Elev.Floor = current_floor
 			Should_stop(current_floor, Elev.Dir, command_channel)
 			Get_next_direction(command_channel)
 
-		case new_order := <-ext_order_channel:
-			from_SM <- UDPMessage{MessageId: Calc_cost, Order: new_order}
-		case message := <-to_SM:
-			switch message.MessageId {
-			case Calc_cost:
-				order_and_cost := orders.Calculate_cost(Elev.Floor, message.Order, Elev.Dir)
-				from_SM <- UDPMessage{MessageId: Cost_calculated, Order: order_and_cost}
-			case New_order:
-				if message.Target == Get_self_id() {
-					if message.Order.Button_type == BUTTON_UP {
-						orders.Elev_queue.ORDER_UP[message.Order.Floor] = 1
-					} else if message.Order.Button_type == BUTTON_DOWN {
-						orders.Elev_queue.ORDER_DOWN[message.Order.Floor] = 1
-					}
+			/*case new_order := <-ext_order_channel:
+			from_SM <- UDPMessage{MessageId: Calc_cost, Order: new_order}*/
 
-				}
-			}
 		}
 	}
 }
