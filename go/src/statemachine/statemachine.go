@@ -259,6 +259,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				break
 			case Elev_dead:
 				if elev.Self_id == elev.Master {
+					elev.Delete_elevator(message.Source)
 					elev.Reassign_external_orders(message)
 					Println("HELP ", message.Source, " is crashing!")
 				}
