@@ -95,6 +95,7 @@ func Calculate_cost(elev_pos int, elev_dir Elev_dir, order External_order) int {
 		cost += order_dir
 	}
 	if order_dir*int(elev_dir) > 0 {
+		Println("Elev in floor ", elev_pos, " has to switch direction")
 		cost += 10
 	} else if order_dir*int(elev_dir) < 0 {
 		if elev_dir == UP && order.Button_type == BUTTON_DOWN {

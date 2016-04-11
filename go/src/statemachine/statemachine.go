@@ -135,7 +135,7 @@ func Get_next_direction(command_channel chan int) {
 		if orders.No_orders_above(Elev.Floor) == 0 {
 			command_channel <- move_up
 		} else {
-			Elev.Dir = STOPMOTOR
+			//Elev.Dir = STOPMOTOR
 			command_channel <- stop
 		}
 
@@ -143,7 +143,7 @@ func Get_next_direction(command_channel chan int) {
 		if orders.No_orders_below(Elev.Floor) == 0 {
 			command_channel <- move_down
 		} else {
-			Elev.Dir = STOPMOTOR
+			//Elev.Dir = STOPMOTOR
 			command_channel <- stop
 		}
 	} else if Elev.Dir == STOPMOTOR {
@@ -173,6 +173,7 @@ func Command_manager(command_channel chan int) {
 			case stop:
 				//Println("Received STOP command")
 				Elev_set_motor_direction(STOPMOTOR)
+				Elev.Dir = STOPMOTOR
 				break
 			case move_up:
 				//Println("Received MOVEUP command")
@@ -225,7 +226,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 			Get_next_direction(command_channel)
 
 		case ext_order := <-ext_order_channel:
-			//Println("ext_order")
+			Println("ext_order")
 			from_SM <- UDPMessage{MessageId: New_order, Order: ext_order}
 		}
 	}

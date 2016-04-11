@@ -48,7 +48,7 @@ func (elev *Elev_manager) Set_elev_floor_and_direction(message UDPMessage) {
 	_, ok := elev.All_elevators[message.Source]
 	if ok {
 		elev.All_elevators[message.Source].Floor = message.Floor
-		elev.All_elevators[message.Source].Dir = Elev_dir(message.Dir)
+		elev.All_elevators[message.Source].Dir = message.Dir
 	}
 }
 
@@ -70,6 +70,7 @@ func (elev *Elev_manager) Assign_external_order(order External_order) int {
 		elev_cost[elevator] = Calculate_cost(elev.All_elevators[elevator].Floor, elev.All_elevators[elevator].Dir, order)
 		Println("Cost for ", elevator, ": ", elev_cost[elevator])
 		Println("Elevator ", elevator, "is on floor", elev.All_elevators[elevator].Floor)
+		Println("Elevator ", elevator, "has direction", elev.All_elevators[elevator].Dir)
 	}
 	best_elevator := -1
 	min_cost := 1000
