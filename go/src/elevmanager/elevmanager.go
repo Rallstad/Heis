@@ -48,7 +48,7 @@ func (elev *Elev_manager) Set_elev_floor_and_direction(message UDPMessage) {
 	_, ok := elev.All_elevators[message.Source]
 	if ok {
 		elev.All_elevators[message.Source].Floor = message.Floor
-		elev.All_elevators[message.Source].Dir = message.Dir
+		elev.All_elevators[message.Source].Dir = Elev_dir(message.Dir)
 	}
 }
 

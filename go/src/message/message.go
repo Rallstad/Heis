@@ -1,6 +1,7 @@
 package message
 
 import "../orders"
+import . "../driver"
 
 //Message ID
 const (
@@ -18,7 +19,7 @@ type UDPMessage struct {
 	Source    int
 	Target    int
 	Floor     int
-	Dir       int
+	Dir       Elev_dir
 	Order     orders.External_order
 }
 
