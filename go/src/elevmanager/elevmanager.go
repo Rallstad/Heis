@@ -9,9 +9,9 @@ import (
 )
 
 type Elevator struct {
-	Floor int
-	Dir   Elev_dir
-	//ORDER_INSIDE [N_FLOOR]int
+	Floor        int
+	Dir          Elev_dir
+	ORDER_INSIDE [N_FLOOR]int
 }
 
 type Elev_manager struct {
@@ -27,7 +27,6 @@ func Make_elev_manager() Elev_manager {
 	addr, _ := net.InterfaceAddrs()
 	elev.Self_id = int(addr[1].String()[12]-'0')*100 + int(addr[1].String()[13]-'0')*10 + int(addr[1].String()[14]-'0')
 	elev.All_elevators[elev.Self_id] = new(Elevator)
-
 	elev.All_elevators[elev.Self_id].Floor = Elev_get_floor_sensor_signal()
 	elev.choose_master()
 	return elev

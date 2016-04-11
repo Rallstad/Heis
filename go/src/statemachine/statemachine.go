@@ -9,6 +9,8 @@ import (
 	. "fmt"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	. "time"
 )
@@ -30,9 +32,10 @@ const (
 
 var state ElevState = IDLE
 
-var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR}
+var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR, orders.Elev_queue.ORDER_INSIDE}
 
 func SM() {
+
 	exit := make(chan os.Signal, 1)
 	signal.Notify(exit, os.Interrupt)
 	signal.Notify(exit, syscall.SIGTERM)
@@ -62,9 +65,16 @@ func SM() {
 }
 
 func handle_program_exit(exit_channel chan UDPMessage) {
+	var file *os.File
+
+	file, _ = os.Create("inside_orders.txt")
+	defer file.Close()
+	for i := 0; i < N_FLOOR; i++ {
+		file.WriteString(strings.TrimSpace(strconv.Itoa(orders.Elev_queue.ORDER_INSIDE[i])) + "\n")
+	}
 	exit_channel <- UDPMessage{MessageId: Elev_dead}
 	Sleep(Millisecond)
-	Println(" Program stopped by human")
+	Println("Program stopped by human")
 	for Elev_get_floor_sensor_signal() < 0 {
 		Elev_set_motor_direction(DOWN)
 	}
@@ -90,7 +100,6 @@ func Elevator_position(position_channel chan int) {
 		}
 		Sleep(100 * Millisecond)
 	}
-
 }
 
 func Should_stop(floor int, dir Elev_dir, command_channel chan int, from_SM chan UDPMessage) {
@@ -156,7 +165,6 @@ func Should_stop(floor int, dir Elev_dir, command_channel chan int, from_SM chan
 			Stop_at_floor()
 		}
 	}
-
 }
 
 func Get_next_direction(command_channel chan int) {
@@ -191,10 +199,10 @@ func Get_next_direction(command_channel chan int) {
 			command_channel <- stop
 		}
 	}
-
 }
 
 func Command_manager(command_channel chan int, from_SM chan UDPMessage) {
+
 	for {
 
 		select {
@@ -202,11 +210,13 @@ func Command_manager(command_channel chan int, from_SM chan UDPMessage) {
 			switch command {
 			case stop:
 				//Println("Received STOP command")
+
 				Elev_set_motor_direction(STOPMOTOR)
 				Elev.Dir = STOPMOTOR
 				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: STOPMOTOR}
 				break
 			case move_up:
+
 				//Println("Received MOVEUP command")
 				Elev_set_motor_direction(UP)
 				Elev.Dir = UP
@@ -214,6 +224,7 @@ func Command_manager(command_channel chan int, from_SM chan UDPMessage) {
 				break
 			case move_down:
 				//Println("Received MOVEDOWN command")
+
 				Elev_set_motor_direction(DOWN)
 				Elev.Dir = DOWN
 				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: DOWN}
@@ -237,6 +248,9 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				break
 			case Elev_delete:
 				elev.Delete_elevator(message.Source)
+				if elev.Self_id == message.Source {
+					orders.Clear_ext_lights_in_floors_without_order()
+				}
 			case New_order:
 				//Println("ext_butt_pushed_New_order")
 				if !elev.Check_if_order_in_floor(message) {

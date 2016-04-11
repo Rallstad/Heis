@@ -13,7 +13,7 @@ import (
 func main() {
 	Elev_init()
 	Init_orders()
-	Sleep(2 * Second)
+	Sleep(1 * Second)
 
 	SM()
 

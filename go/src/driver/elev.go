@@ -60,7 +60,6 @@ func Elev_set_door_open_lamp(value int) {
 
 func Elev_set_stop_lamp(value int) {
 	C.elev_set_stop_lamp(C.int(value))
-
 }
 
 func Elev_get_button_signal(button int, floor int) int {

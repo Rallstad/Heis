@@ -21,7 +21,6 @@ func broadcast_ip(id int, channel chan UDPMessage) {
 func Delete_elev(id int, to_SM chan UDPMessage) {
 	delete(elev_timer, id)
 	to_SM <- UDPMessage{Source: id, MessageId: Elev_delete}
-
 }
 
 func Network_manager(from_SM chan UDPMessage, to_SM chan UDPMessage) {
