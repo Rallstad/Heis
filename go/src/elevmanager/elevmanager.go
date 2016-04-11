@@ -105,14 +105,15 @@ func (elev *Elev_manager) Clear_external_order(message UDPMessage) {
 	}
 }
 
-func (elev *Elev_manager) Reassign_external_orders(message UDPMessage) {
+func (elev *Elev_manager) Reassign_external_orders(message UDPMessage) (int, External_order) {
 	Println("Reassigning")
 	for button := 0; button < 2; button++ {
 		for floor := 0; floor < N_FLOOR; floor++ {
 			if elev.External_orders[button][floor] == message.Source {
 				temp_order := External_order{Floor: floor, Button_type: button}
-				elev.Assign_external_order(temp_order)
+				return elev.Assign_external_order(temp_order), temp_order
 			}
 		}
 	}
+	return 0, External_order{Floor: -1, Button_type: -1}
 }

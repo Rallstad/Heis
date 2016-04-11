@@ -260,7 +260,8 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 			case Elev_dead:
 				if elev.Self_id == elev.Master {
 					elev.Delete_elevator(message.Source)
-					elev.Reassign_external_orders(message)
+					best_elev, temp_order := elev.Reassign_external_orders(message)
+					from_SM <- UDPMessage{MessageId: Order_assigned, Target: best_elev, Order: temp_order}
 					Println("HELP ", message.Source, " is crashing!")
 				}
 			}
