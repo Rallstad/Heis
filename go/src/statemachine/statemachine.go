@@ -97,7 +97,8 @@ func Should_stop(floor int, dir Elev_dir, command_channel chan int, from_SM chan
 		}
 		//Println("Should stop order inside")
 		command_channel <- stop
-		from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir}
+		temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_INSIDE}
+		from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
 		Stop_at_floor()
 	} else if dir == UP {
 		//Println("Saggy tits")
@@ -105,16 +106,19 @@ func Should_stop(floor int, dir Elev_dir, command_channel chan int, from_SM chan
 			Println("Stopping in floor ", floor)
 			//Println("Stopping for order UP")
 			command_channel <- stop
-			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir}
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_UP}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
 			Stop_at_floor()
 		} else if floor == N_FLOOR-1 { ///KANSKJE FJERNES
 			//Println("Stopping for top floor")
 			command_channel <- stop
-			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir}
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_INSIDE}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
 			Stop_at_floor()
 		} else if orders.Elev_queue.ORDER_DOWN[floor] == 1 && orders.No_orders_above(floor+1) != 0 {
 			command_channel <- stop
-			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir}
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_DOWN}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
 			Stop_at_floor()
 		}
 	} else if dir == DOWN {
@@ -122,23 +126,27 @@ func Should_stop(floor int, dir Elev_dir, command_channel chan int, from_SM chan
 		if orders.Elev_queue.ORDER_DOWN[floor] == 1 {
 			//Println("Stopping for order DOWN")
 			command_channel <- stop
-			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir}
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_DOWN}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
 			Stop_at_floor()
 		} else if floor == 0 { ///KANSKJE FJERNES
 			//Println("Stopping for bottom floor")
 			command_channel <- stop
-			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir}
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_INSIDE}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
 			Stop_at_floor()
 		} else if orders.Elev_queue.ORDER_UP[floor] == 1 && orders.No_orders_below(floor-1) != 0 {
 			command_channel <- stop
-			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir}
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_UP}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
 			Stop_at_floor()
 		}
 	} else if dir == STOPMOTOR {
 		//Println("Fat ass")
 		if orders.Elev_queue.ORDER_UP[floor] == 1 || orders.Elev_queue.ORDER_DOWN[floor] == 1 {
 			command_channel <- stop
-			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir}
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_INSIDE}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
 			Stop_at_floor()
 		}
 	}

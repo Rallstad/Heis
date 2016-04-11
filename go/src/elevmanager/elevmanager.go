@@ -96,5 +96,10 @@ func (elev *Elev_manager) Set_external_order(message UDPMessage) {
 	elev.External_orders[message.Order.Button_type][message.Order.Floor] = 1
 }
 func (elev *Elev_manager) Clear_external_order(message UDPMessage) {
-	elev.External_orders[message.Order.Button_type][message.Order.Floor] = 0
+	if message.Order.Button_type == BUTTON_INSIDE {
+		elev.External_orders[BUTTON_UP][message.Floor] = 0
+		elev.External_orders[BUTTON_DOWN][message.Floor] = 0
+	} else {
+		elev.External_orders[message.Order.Button_type][message.Order.Floor] = 0
+	}
 }
