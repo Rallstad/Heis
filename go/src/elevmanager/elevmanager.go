@@ -106,7 +106,8 @@ func (elev *Elev_manager) Clear_external_order(message UDPMessage) {
 }
 
 func (elev *Elev_manager) Reassign_external_orders(message UDPMessage) {
-	for button := BUTTON_UP; button <= BUTTON_DOWN; button++ {
+	Println("Reassigning")
+	for button := 0; button < 2; button++ {
 		for floor := 0; floor < N_FLOOR; floor++ {
 			if elev.External_orders[button][floor] == message.Source {
 				temp_order := External_order{Floor: floor, Button_type: button}
