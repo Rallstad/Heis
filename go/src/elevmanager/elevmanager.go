@@ -71,6 +71,7 @@ func (elev *Elev_manager) Assign_external_order(order External_order) int {
 		Println("Cost for ", elevator, ": ", elev_cost[elevator])
 		Println("Elevator ", elevator, "is on floor", elev.All_elevators[elevator].Floor)
 		Println("Elevator ", elevator, "has direction", elev.All_elevators[elevator].Dir)
+		Println("")
 	}
 	best_elevator := -1
 	min_cost := 1000

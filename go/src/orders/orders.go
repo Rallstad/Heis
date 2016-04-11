@@ -47,6 +47,7 @@ func Register_order_up(order chan External_order) {
 	for i := 0; i < N_FLOOR-1; i++ {
 		if Elev_get_button_signal(BUTTON_UP, i) > 0 {
 			order <- External_order{Floor: i, Button_type: BUTTON_UP}
+			Println("SOMEONE PRESSED THE ORDER UP BUTTON IN FLOOR ", i, "!!!!!!!!!!!!!")
 			Sleep(100 * Millisecond)
 		}
 	}
@@ -57,6 +58,7 @@ func Register_order_down(order chan External_order) {
 	for i := 1; i < N_FLOOR; i++ {
 		if Elev_get_button_signal(BUTTON_DOWN, i) > 0 {
 			order <- External_order{Floor: i, Button_type: BUTTON_DOWN}
+			Println("SOMEONE PRESSED THE ORDER DOWN BUTTON IN FLOOR ", i, "!!!!!!!!!!!!!")
 			Sleep(100 * Millisecond)
 		}
 	}
