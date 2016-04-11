@@ -210,9 +210,12 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				elev.Delete_elevator(message.Source)
 			case New_order:
 				//Println("ext_butt_pushed_New_order")
-				orders.Set_ext_light(message.Order)
-				if elev.Self_id == elev.Master {
-					from_SM <- UDPMessage{MessageId: Order_assigned, Target: elev.Assign_external_order(message.Order), Order: message.Order, Floor: Elev.Floor}
+				if !elev.Check_if_order_in_floor(message) {
+					elev.Set_external_order(message)
+					orders.Set_ext_light(message.Order)
+					if elev.Self_id == elev.Master {
+						from_SM <- UDPMessage{MessageId: Order_assigned, Target: elev.Assign_external_order(message.Order), Order: message.Order, Floor: Elev.Floor}
+					}
 				}
 				break
 			case Order_assigned:
@@ -222,6 +225,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				}
 				break
 			case Order_completed:
+				elev.Clear_external_order(message)
 				orders.Clear_ext_light(message.Floor)
 				break
 			}
