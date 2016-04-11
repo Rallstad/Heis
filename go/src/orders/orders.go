@@ -87,7 +87,9 @@ func Calculate_cost(elev_pos int, elev_dir Elev_dir, order External_order) int {
 	if elev_pos == order.Floor && elev_dir == STOPMOTOR {
 		return cost
 	}
-
+	if elev_dir != STOPMOTOR {
+		cost += 2
+	}
 	order_dir := elev_pos - order.Floor
 	if order_dir < 0 {
 		cost += (-order_dir)

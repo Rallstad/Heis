@@ -221,7 +221,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				}
 				break
 			case Order_completed:
-				orders.Clear_lights_at_floor(message.Order.Floor)
+				orders.Clear_ext_light(message.Order.Floor)
 				break
 			}
 		case current_floor := <-position_channel:
