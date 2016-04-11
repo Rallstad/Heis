@@ -75,6 +75,7 @@ func Register_order_inside() {
 }
 
 func Place_order(order External_order) {
+	Println("Placing order ", order.Button_type, " in floor ", order.Floor)
 	if order.Button_type == BUTTON_UP {
 		Elev_queue.ORDER_UP[order.Floor] = 1
 	}
