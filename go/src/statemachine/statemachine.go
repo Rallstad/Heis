@@ -31,8 +31,8 @@ var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR}
 
 func SM() {
 
-	from_SM := make(chan UDPMessage, 100)
-	to_SM := make(chan UDPMessage, 100)
+	from_SM := make(chan UDPMessage, 1000)
+	to_SM := make(chan UDPMessage, 1000)
 
 	position_channel := make(chan int, 100)
 	order_channel := make(chan int, 100)
