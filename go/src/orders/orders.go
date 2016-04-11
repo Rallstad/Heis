@@ -222,6 +222,18 @@ func Set_ext_light(order External_order) {
 	Elev_set_button_lamp(order.Button_type, order.Floor, 1)
 }
 
+func Clear_all_lights() {
+	for i := 0; i < N_FLOOR-1; i++ {
+		Elev_set_button_lamp(BUTTON_UP, i, 0)
+	}
+	for i := 1; i < N_FLOOR; i++ {
+		Elev_set_button_lamp(BUTTON_DOWN, i, 0)
+	}
+	for i := 0; i < N_FLOOR; i++ {
+		Elev_set_button_lamp(BUTTON_INSIDE, i, 0)
+	}
+
+}
 func Clear_ext_light(floor int) {
 	Println("Clearing external light in floor", floor) //, " ,button: ", order.Button_type)
 	Elev_set_button_lamp(BUTTON_UP, floor, 0)

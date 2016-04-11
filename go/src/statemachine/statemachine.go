@@ -76,11 +76,13 @@ func handle_program_exit(exit_channel chan UDPMessage) {
 	exit_channel <- UDPMessage{MessageId: Elev_dead}
 	Sleep(Millisecond)
 	Println("Program stopped by human")
+	orders.Clear_all_lights()
 	for Elev_get_floor_sensor_signal() < 0 {
 		Elev_set_motor_direction(DOWN)
 	}
 	Elev_set_door_open_lamp(1)
 	Elev_set_motor_direction(STOPMOTOR)
+
 	os.Exit(1)
 
 }
@@ -88,7 +90,7 @@ func handle_program_exit(exit_channel chan UDPMessage) {
 func check_if_timeout(from_SM chan UDPMessage) {
 	hw_timeout := AfterFunc(10*Second, func() { handle_program_exit(from_SM) })
 	for {
-		if orders.No_orders() != 0 {
+		if orders.No_orders() == 1 {
 			hw_timeout.Reset(10 * Second)
 		}
 
