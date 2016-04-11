@@ -63,6 +63,10 @@ func SM() {
 
 func handle_program_exit() {
 	Println(" Program stopped by human")
+	for Elev_get_floor_sensor_signal() < 0 {
+		Elev_set_motor_direction(DOWN)
+	}
+	Elev_set_door_open_lamp(1)
 	Elev_set_motor_direction(STOPMOTOR)
 }
 
