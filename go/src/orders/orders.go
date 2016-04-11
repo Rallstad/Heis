@@ -230,10 +230,10 @@ func Clear_ext_light(floor int) {
 
 func Clear_ext_lights_in_floors_without_order() {
 	for i := 0; i < N_FLOOR; i++ {
-		if Elev_queue.ORDER_UP[i] == 0 {
+		if Elev_queue.ORDER_UP[i] != 1 {
 			Elev_set_button_lamp(BUTTON_UP, i, 0)
 		}
-		if Elev_queue.ORDER_DOWN[i] == 0 {
+		if Elev_queue.ORDER_DOWN[i] != 1 {
 			Elev_set_button_lamp(BUTTON_DOWN, i, 0)
 		}
 	}

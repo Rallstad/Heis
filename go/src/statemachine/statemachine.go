@@ -37,6 +37,7 @@ var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR, orders.Elev_queue
 func SM() {
 
 	exit := make(chan os.Signal, 1)
+
 	signal.Notify(exit, os.Interrupt)
 	signal.Notify(exit, syscall.SIGTERM)
 	from_SM := make(chan UDPMessage, 1000)
@@ -54,11 +55,11 @@ func SM() {
 	//go Print_status()
 	go Network_manager(from_SM, to_SM)
 	go Command_manager(command_channel, from_SM)
-
+	go check_if_timeout(from_SM)
 	go func() {
 		<-exit
 		handle_program_exit(from_SM)
-		os.Exit(1)
+		//os.Exit(1)
 	}()
 	Event_manager(ext_order_channel, order_channel, position_channel, command_channel, from_SM, to_SM)
 
@@ -80,6 +81,19 @@ func handle_program_exit(exit_channel chan UDPMessage) {
 	}
 	Elev_set_door_open_lamp(1)
 	Elev_set_motor_direction(STOPMOTOR)
+	os.Exit(1)
+
+}
+
+func check_if_timeout(from_SM chan UDPMessage) {
+	hw_timeout := AfterFunc(8*Second, func() { handle_program_exit(from_SM) })
+	for {
+		if orders.No_orders() != 0 {
+			hw_timeout.Reset(8 * Second)
+		}
+
+		Sleep(1 * Second)
+	}
 }
 
 func Print_status() {
@@ -202,21 +216,19 @@ func Get_next_direction(command_channel chan int) {
 }
 
 func Command_manager(command_channel chan int, from_SM chan UDPMessage) {
-
 	for {
 
 		select {
+
 		case command := <-command_channel:
 			switch command {
 			case stop:
 				//Println("Received STOP command")
-
 				Elev_set_motor_direction(STOPMOTOR)
 				Elev.Dir = STOPMOTOR
 				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: STOPMOTOR}
 				break
 			case move_up:
-
 				//Println("Received MOVEUP command")
 				Elev_set_motor_direction(UP)
 				Elev.Dir = UP
@@ -224,7 +236,6 @@ func Command_manager(command_channel chan int, from_SM chan UDPMessage) {
 				break
 			case move_down:
 				//Println("Received MOVEDOWN command")
-
 				Elev_set_motor_direction(DOWN)
 				Elev.Dir = DOWN
 				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: DOWN}
@@ -247,8 +258,9 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor}
 				break
 			case Elev_delete:
+				Println(message.Source)
 				elev.Delete_elevator(message.Source)
-				if elev.Self_id == message.Source {
+				if len(elev.All_elevators) == 1 {
 					orders.Clear_ext_lights_in_floors_without_order()
 				}
 			case New_order:
