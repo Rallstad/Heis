@@ -110,7 +110,7 @@ func (elev *Elev_manager) Reassign_external_orders(message UDPMessage) {
 	for button := 0; button < 2; button++ {
 		for floor := 0; floor < N_FLOOR; floor++ {
 			if elev.External_orders[button][floor] == message.Source {
-				temp_order := External_order{Floor: floor, Button_type: BUTTON_TYPEbutton}
+				temp_order := External_order{Floor: floor, Button_type: button}
 				elev.Assign_external_order(temp_order)
 			}
 		}
