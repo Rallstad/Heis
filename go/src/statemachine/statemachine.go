@@ -87,6 +87,7 @@ func Should_stop(floor int, dir Elev_dir, command_channel chan int, from_SM chan
 	} else if dir == UP {
 		//Println("Saggy tits")
 		if orders.Elev_queue.ORDER_UP[floor] == 1 {
+			Println("Stopping in floor ", floor)
 			//Println("Stopping for order UP")
 			command_channel <- stop
 			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir}
