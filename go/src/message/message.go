@@ -5,13 +5,14 @@ import . "../driver"
 
 //Message ID
 const (
-	Ping            = 1
-	Elev_move       = 2
-	New_order       = 3
-	Order_assigned  = 4
-	Order_completed = 5
-	Elev_delete     = 6
-	Elev_add        = 7
+	Ping              = 1
+	Elev_move         = 2
+	New_order         = 3
+	Order_assigned    = 4
+	Order_completed   = 5
+	Elev_delete       = 6
+	Elev_add          = 7
+	Elev_state_update = 8
 )
 
 type UDPMessage struct {

@@ -45,7 +45,7 @@ func SM() {
 	//go orders.Print_orders()
 	//go Print_status()
 	go Network_manager(from_SM, to_SM)
-	go Command_manager(command_channel)
+	go Command_manager(command_channel, from_SM)
 
 	Event_manager(ext_order_channel, order_channel, position_channel, command_channel, from_SM, to_SM)
 
@@ -164,7 +164,7 @@ func Get_next_direction(command_channel chan int) {
 
 }
 
-func Command_manager(command_channel chan int) {
+func Command_manager(command_channel chan int, from_SM chan UDPMessage) {
 	for {
 
 		select {
@@ -174,16 +174,19 @@ func Command_manager(command_channel chan int) {
 				//Println("Received STOP command")
 				Elev_set_motor_direction(STOPMOTOR)
 				Elev.Dir = STOPMOTOR
+				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: STOPMOTOR}
 				break
 			case move_up:
 				//Println("Received MOVEUP command")
 				Elev_set_motor_direction(UP)
 				Elev.Dir = UP
+				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: UP}
 				break
 			case move_down:
 				//Println("Received MOVEDOWN command")
 				Elev_set_motor_direction(DOWN)
 				Elev.Dir = DOWN
+				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: DOWN}
 				break
 			}
 		}
@@ -195,8 +198,9 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 	for {
 		select {
 		case message := <-to_SM:
-			elev.Set_elev_floor_and_direction(message)
 			switch message.MessageId {
+			case Elev_state_update:
+				elev.Set_elev_floor_and_direction(message)
 			case Elev_add:
 				elev.Add_elevator(message)
 				break
