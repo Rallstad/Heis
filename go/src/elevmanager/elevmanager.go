@@ -44,10 +44,11 @@ func (elev *Elev_manager) choose_master() {
 	Println("Master is ", elev.Master)
 }
 
-func (elev *Elev_manager) Set_elev_floor(message UDPMessage) {
+func (elev *Elev_manager) Set_elev_floor_and_direction(message UDPMessage) {
 	_, ok := elev.All_elevators[message.Source]
 	if ok {
 		elev.All_elevators[message.Source].Floor = message.Floor
+		elev.All_elevators[message.Source].Dir = message.Dir
 	}
 }
 
