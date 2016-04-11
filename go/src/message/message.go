@@ -13,6 +13,7 @@ const (
 	Elev_delete       = 6
 	Elev_add          = 7
 	Elev_state_update = 8
+	Elev_dead         = 9
 )
 
 type UDPMessage struct {

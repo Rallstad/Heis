@@ -54,15 +54,16 @@ func SM() {
 
 	go func() {
 		<-exit
-		handle_program_exit()
+		handle_program_exit(from_SM)
 		os.Exit(1)
 	}()
 	Event_manager(ext_order_channel, order_channel, position_channel, command_channel, from_SM, to_SM)
 
 }
 
-func handle_program_exit() {
+func handle_program_exit(exit_channel chan UDPMessage) {
 	Println(" Program stopped by human")
+	exit_channel <- UDPMessage{MessageId: Elev_dead}
 	for Elev_get_floor_sensor_signal() < 0 {
 		Elev_set_motor_direction(DOWN)
 	}
@@ -255,6 +256,10 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				elev.Clear_external_order(message)
 				orders.Clear_ext_light(message.Floor)
 				break
+			case Elev_dead:
+				if elev.Self_id == elev.Master {
+					Println("oiu<dshfjsilhgkl")
+				}
 			}
 		case current_floor := <-position_channel:
 			//Println("curr fl")
