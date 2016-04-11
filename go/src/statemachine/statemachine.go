@@ -62,8 +62,9 @@ func SM() {
 }
 
 func handle_program_exit(exit_channel chan UDPMessage) {
-	Println(" Program stopped by human")
 	exit_channel <- UDPMessage{MessageId: Elev_dead}
+	Sleep(Millisecond)
+	Println(" Program stopped by human")
 	for Elev_get_floor_sensor_signal() < 0 {
 		Elev_set_motor_direction(DOWN)
 	}
@@ -258,7 +259,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				break
 			case Elev_dead:
 				if elev.Self_id == elev.Master {
-					Println("oiu<dshfjsilhgkl")
+					Println("HELP ", message.Source, " is crashing!")
 				}
 			}
 		case current_floor := <-position_channel:
