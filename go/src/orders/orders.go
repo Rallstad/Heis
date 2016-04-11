@@ -127,6 +127,7 @@ func Clear_orders_at_floor(floor int) {
 }
 
 func Clear_lights_at_floor(floor int) {
+	Println("Clearing lights in floor ", floor)
 	if floor == 0 {
 		Elev_set_button_lamp(BUTTON_UP, floor, 0)
 		Elev_set_button_lamp(BUTTON_INSIDE, floor, 0)
@@ -213,9 +214,10 @@ func Set_ext_light(order External_order) {
 	Elev_set_button_lamp(order.Button_type, order.Floor, 1)
 }
 
-func Clear_ext_light(order External_order) {
-	Println("Clearing light in floor", order.Floor, " ,button: ", order.Button_type)
-	Elev_set_button_lamp(order.Button_type, order.Floor, 0)
+func Clear_ext_light(floor int) {
+	Println("Clearing light in floor", order.Floor) //, " ,button: ", order.Button_type)
+	Elev_set_button_lamp(order.BUTTON_UP, order.Floor, 0)
+	Elev_set_button_lamp(order.BUTTON_DOWN, order.Floor, 0)
 }
 
 func Print_orders() {
