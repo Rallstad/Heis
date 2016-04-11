@@ -240,7 +240,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 			case New_order:
 				//Println("ext_butt_pushed_New_order")
 				if !elev.Check_if_order_in_floor(message) {
-					elev.Set_external_order(message)
+					//elev.Set_external_order(message)
 					orders.Set_ext_light(message.Order)
 					if elev.Self_id == elev.Master {
 						from_SM <- UDPMessage{MessageId: Order_assigned, Target: elev.Assign_external_order(message.Order), Order: message.Order, Floor: Elev.Floor}
@@ -259,6 +259,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				break
 			case Elev_dead:
 				if elev.Self_id == elev.Master {
+					elev.Reassign_external_orders(message)
 					Println("HELP ", message.Source, " is crashing!")
 				}
 			}

@@ -81,12 +81,13 @@ func (elev *Elev_manager) Assign_external_order(order External_order) int {
 			best_elevator = elevator
 		}
 	}
+	elev.External_orders[order.Button_type][order.Floor] = best_elevator
 	Println("Ordertype ", order.Button_type, " in floor ", order.Floor, "assigned to elev", best_elevator)
 	return best_elevator
 }
 
 func (elev *Elev_manager) Check_if_order_in_floor(message UDPMessage) bool {
-	if elev.External_orders[message.Order.Button_type][message.Order.Floor] == 1 { /////kanskje denne skal kunne være 1/2 ut ifra status:knapp trykt, heis på vei
+	if elev.External_orders[message.Order.Button_type][message.Order.Floor] > 0 { /////kanskje denne skal kunne være 1/2 ut ifra status:knapp trykt, heis på vei
 		return true
 	}
 	return false
@@ -101,5 +102,16 @@ func (elev *Elev_manager) Clear_external_order(message UDPMessage) {
 		elev.External_orders[BUTTON_DOWN][message.Floor] = 0
 	} else {
 		elev.External_orders[message.Order.Button_type][message.Order.Floor] = 0
+	}
+}
+
+func (elev *Elev_manager) Reassign_external_orders(message UDPMessage) {
+	for button := BUTTON_UP; button <= BUTTON_DOWN; button++ {
+		for floor := 0; floor < N_FLOOR; floor++ {
+			if elev.External_orders[button][floor] == message.Source {
+				temp_order := External_order{Floor: floor, Button_type: button}
+				elev.Assign_external_order(temp_order)
+			}
+		}
 	}
 }
