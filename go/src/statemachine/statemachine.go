@@ -203,6 +203,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				elev.Set_elev_floor_and_direction(message)
 			case Elev_add:
 				elev.Add_elevator(message)
+				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor}
 				break
 			case Elev_delete:
 				elev.Delete_elevator(message.Source)
