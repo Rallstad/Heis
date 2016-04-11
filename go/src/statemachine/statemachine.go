@@ -86,10 +86,10 @@ func handle_program_exit(exit_channel chan UDPMessage) {
 }
 
 func check_if_timeout(from_SM chan UDPMessage) {
-	hw_timeout := AfterFunc(8*Second, func() { handle_program_exit(from_SM) })
+	hw_timeout := AfterFunc(10*Second, func() { handle_program_exit(from_SM) })
 	for {
 		if orders.No_orders() != 0 {
-			hw_timeout.Reset(8 * Second)
+			hw_timeout.Reset(10 * Second)
 		}
 
 		Sleep(1 * Second)
