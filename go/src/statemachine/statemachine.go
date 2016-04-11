@@ -7,6 +7,9 @@ import (
 	. "../network"
 	"../orders"
 	. "fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	. "time"
 )
 
@@ -30,7 +33,9 @@ var state ElevState = IDLE
 var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR}
 
 func SM() {
-
+	exit := make(chan os.Signal, 1)
+	signal.Notify(exit, os.Interrupt)
+	signal.Notify(exit, syscall.SIGTERM)
 	from_SM := make(chan UDPMessage, 1000)
 	to_SM := make(chan UDPMessage, 1000)
 
@@ -47,8 +52,18 @@ func SM() {
 	go Network_manager(from_SM, to_SM)
 	go Command_manager(command_channel, from_SM)
 
+	go func() {
+		<-exit
+		handle_program_exit()
+		os.Exit(1)
+	}()
 	Event_manager(ext_order_channel, order_channel, position_channel, command_channel, from_SM, to_SM)
 
+}
+
+func handle_program_exit() {
+	Println(" Program stopped by human")
+	Elev_set_motor_direction(STOPMOTOR)
 }
 
 func Print_status() {
