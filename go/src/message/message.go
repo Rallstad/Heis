@@ -3,7 +3,6 @@ package message
 import "../orders"
 import . "../driver"
 
-//Message ID
 const (
 	Ping              = 1
 	Elev_move         = 2
@@ -24,8 +23,3 @@ type UDPMessage struct {
 	Dir       Elev_dir
 	Order     orders.External_order
 }
-
-/*func CalculateChecksum(Msg *UDPMessage) int { // not a very good crc, just for testing
-	c := Msg.MessageId%7 + Msg.OrderQueue[0]%7 + Msg.ElevatorStateUpdate[0]%7
-	return c
-}*/

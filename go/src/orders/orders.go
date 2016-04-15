@@ -41,15 +41,15 @@ func Init_orders() {
 
 func Register_order(order chan External_order) {
 	for {
-		Register_order_up(order)
-		Register_order_down(order)
-		Register_order_inside()
-		Set_light()
+		register_order_up(order)
+		register_order_down(order)
+		register_order_inside()
+		set_light()
 		Sleep(100 * Millisecond)
 	}
 }
 
-func Register_order_up(order chan External_order) {
+func register_order_up(order chan External_order) {
 	for i := 0; i < N_FLOOR-1; i++ {
 		if Elev_get_button_signal(BUTTON_UP, i) > 0 {
 			order <- External_order{Floor: i, Button_type: BUTTON_UP}
@@ -58,7 +58,7 @@ func Register_order_up(order chan External_order) {
 	}
 }
 
-func Register_order_down(order chan External_order) {
+func register_order_down(order chan External_order) {
 	for i := 1; i < N_FLOOR; i++ {
 		if Elev_get_button_signal(BUTTON_DOWN, i) > 0 {
 			order <- External_order{Floor: i, Button_type: BUTTON_DOWN}
@@ -67,7 +67,7 @@ func Register_order_down(order chan External_order) {
 	}
 }
 
-func Register_order_inside() {
+func register_order_inside() {
 	for i := 0; i < N_FLOOR; i++ {
 		if Elev_get_button_signal(BUTTON_INSIDE, i) > 0 {
 			Elev_queue.ORDER_INSIDE[i] = 1
@@ -99,7 +99,6 @@ func Calculate_cost(elev_pos int, elev_dir Elev_dir, order External_order) int {
 		cost += order_dir
 	}
 	if order_dir*int(elev_dir) > 0 {
-		Println("Elev in floor ", elev_pos, " has to switch direction")
 		cost += 10
 	} else if order_dir*int(elev_dir) < 0 {
 		if elev_dir == UP && order.Button_type == BUTTON_DOWN {
@@ -126,7 +125,6 @@ func Clear_orders_at_floor(floor int) {
 }
 
 func Clear_lights_at_floor(floor int) {
-	Println("Clearing lights in floor ", floor)
 	if floor == 0 {
 		Elev_set_button_lamp(BUTTON_UP, floor, 0)
 		Elev_set_button_lamp(BUTTON_INSIDE, floor, 0)
@@ -194,7 +192,7 @@ func No_orders_inside() int {
 	return 1
 }
 
-func Set_light() {
+func set_light() {
 	for i := 0; i < N_FLOOR; i++ {
 		if Elev_queue.ORDER_UP[i] > 0 {
 			Elev_set_button_lamp(BUTTON_UP, i, 1)
@@ -222,7 +220,6 @@ func Clear_all_lights() {
 	for i := 0; i < N_FLOOR; i++ {
 		Elev_set_button_lamp(BUTTON_INSIDE, i, 0)
 	}
-
 }
 
 func Order_in_floor(floor int) bool {
@@ -241,7 +238,6 @@ func Clear_ext_light(floor int) {
 		Elev_set_button_lamp(BUTTON_UP, floor, 0)
 		Elev_set_button_lamp(BUTTON_DOWN, floor, 0)
 	}
-
 }
 
 func Clear_ext_lights_in_floors_without_order() {
@@ -257,7 +253,6 @@ func Clear_ext_lights_in_floors_without_order() {
 
 func Print_orders() {
 	for {
-		Println("Current orders")
 		for i := 0; i < N_FLOOR; i++ {
 			Println(Elev_queue.ORDER_UP[i])
 			Println(Elev_queue.ORDER_DOWN[i])

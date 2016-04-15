@@ -3,7 +3,6 @@ package network
 import (
 	. "../UDP"
 	. "../message"
-	//"fmt"
 	"net"
 	"time"
 )
@@ -18,7 +17,7 @@ func broadcast_ip(id int, channel chan UDPMessage) {
 	}
 }
 
-func Delete_elev(id int, to_SM chan UDPMessage) {
+func delete_elev(id int, to_SM chan UDPMessage) {
 	delete(elev_timer, id)
 	to_SM <- UDPMessage{Source: id, MessageId: Elev_delete}
 }
@@ -43,7 +42,7 @@ func Network_manager(from_SM chan UDPMessage, to_SM chan UDPMessage) {
 					if elev_present {
 						elev_timer[message.Source].Reset(time.Second)
 					} else {
-						elev_timer[message.Source] = time.AfterFunc(time.Second, func() { Delete_elev(message.Source, to_SM) })
+						elev_timer[message.Source] = time.AfterFunc(time.Second, func() { delete_elev(message.Source, to_SM) })
 						to_SM <- UDPMessage{MessageId: Elev_add, Source: message.Source}
 					}
 				}
@@ -51,7 +50,6 @@ func Network_manager(from_SM chan UDPMessage, to_SM chan UDPMessage) {
 			to_SM <- message
 
 		case message := <-from_SM:
-			//fmt.Println("Network manager received from SM")
 			message.Source = self_id
 			UDP_send <- message
 		}

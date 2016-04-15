@@ -1,20 +1,281 @@
 package main
 
 import (
-	//. "./elev"
 	. "./driver"
-	. "./orders"
-	. "./statemachine"
-	//. "./network"
-	//. "fmt"
+	. "./elevmanager"
+	. "./message"
+	. "./network"
+	"./orders"
+	. "fmt"
+	"os"
+	"os/signal"
+	"strconv"
+	"strings"
+	"syscall"
 	. "time"
 )
 
+const (
+	stop      = 0
+	move_up   = 1
+	move_down = -1
+)
+
+var Elev = Elevator{Elev_get_floor_sensor_signal(), STOPMOTOR, orders.Elev_queue.ORDER_INSIDE}
+
 func main() {
+
 	Elev_init()
-	Init_orders()
+	orders.Init_orders()
 	Sleep(1 * Second)
 
-	SM()
+	exit := make(chan os.Signal, 1)
+	signal.Notify(exit, os.Interrupt)
+	signal.Notify(exit, syscall.SIGTERM)
+	from_SM := make(chan UDPMessage, 1000)
+	to_SM := make(chan UDPMessage, 1000)
 
+	position_channel := make(chan int, 100)
+	ext_order_channel := make(chan orders.External_order, 100)
+	command_channel := make(chan int, 100)
+
+	go Elevator_position(position_channel)
+	go orders.Register_order(ext_order_channel)
+	go Network_manager(from_SM, to_SM)
+	go command_manager(command_channel, from_SM)
+	go check_if_timeout(from_SM)
+	go func() {
+		<-exit
+		handle_program_exit(from_SM)
+	}()
+	event_manager(ext_order_channel, position_channel, command_channel, from_SM, to_SM)
+}
+
+func handle_program_exit(exit_channel chan UDPMessage) {
+	var file *os.File
+	file, _ = os.Create("inside_orders.txt")
+	defer file.Close()
+
+	for i := 0; i < N_FLOOR; i++ {
+		file.WriteString(strings.TrimSpace(strconv.Itoa(orders.Elev_queue.ORDER_INSIDE[i])) + "\n")
+	}
+	exit_channel <- UDPMessage{MessageId: Elev_dead}
+	Sleep(Millisecond)
+	Println("Program stopped")
+	orders.Clear_all_lights()
+
+	for Elev_get_floor_sensor_signal() < 0 {
+		Elev_set_motor_direction(DOWN)
+	}
+	Elev_set_door_open_lamp(1)
+	Elev_set_motor_direction(STOPMOTOR)
+	os.Exit(1)
+}
+
+func check_if_timeout(from_SM chan UDPMessage) {
+	hw_timeout := AfterFunc(10*Second, func() { handle_program_exit(from_SM) })
+	for {
+		if orders.No_orders() == 1 {
+			hw_timeout.Reset(10 * Second)
+		}
+		Sleep(1 * Second)
+	}
+}
+
+func Print_status() {
+	for {
+		Println("Current direction: ", Elev.Dir)
+		Println("Current floor: ", Elev.Floor)
+		Sleep(2 * Second)
+	}
+}
+
+func Elevator_position(position_channel chan int) {
+	for {
+		floor := Elev_get_floor_sensor_signal()
+		if floor != -1 {
+			position_channel <- floor
+			Elev_set_floor_indicator(floor)
+		}
+		Sleep(100 * Millisecond)
+	}
+}
+
+func should_stop(floor int, dir Elev_dir, command_channel chan int, from_SM chan UDPMessage) {
+	from_SM <- UDPMessage{Floor: floor}
+	if orders.Elev_queue.ORDER_INSIDE[floor] == 1 && Elev_get_floor_sensor_signal() > -1 {
+		command_channel <- stop
+		temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_INSIDE}
+		from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
+		stop_at_floor()
+	} else if dir == UP {
+		if orders.Elev_queue.ORDER_UP[floor] == 1 {
+			command_channel <- stop
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_UP}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
+			stop_at_floor()
+		} else if floor == N_FLOOR-1 {
+			command_channel <- stop
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_INSIDE}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
+			stop_at_floor()
+		} else if orders.Elev_queue.ORDER_DOWN[floor] == 1 && orders.No_orders_above(floor+1) != 0 {
+			command_channel <- stop
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_DOWN}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
+			stop_at_floor()
+		}
+	} else if dir == DOWN {
+		if orders.Elev_queue.ORDER_DOWN[floor] == 1 {
+			command_channel <- stop
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_DOWN}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
+			stop_at_floor()
+		} else if floor == 0 {
+			command_channel <- stop
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_INSIDE}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
+			stop_at_floor()
+		} else if orders.Elev_queue.ORDER_UP[floor] == 1 && orders.No_orders_below(floor-1) != 0 {
+			command_channel <- stop
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_UP}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
+			stop_at_floor()
+		}
+	} else if dir == STOPMOTOR {
+		if orders.Elev_queue.ORDER_UP[floor] == 1 || orders.Elev_queue.ORDER_DOWN[floor] == 1 {
+			command_channel <- stop
+			temp_order := orders.External_order{Floor: floor, Button_type: BUTTON_INSIDE}
+			from_SM <- UDPMessage{MessageId: Order_completed, Floor: floor, Dir: dir, Order: temp_order}
+			stop_at_floor()
+		}
+	}
+}
+
+func get_next_direction(command_channel chan int) {
+	if Elev.Dir == UP {
+		if orders.No_orders_above(Elev.Floor) == 0 {
+			command_channel <- move_up
+		} else {
+			command_channel <- stop
+		}
+	} else if Elev.Dir == DOWN {
+		if orders.No_orders_below(Elev.Floor) == 0 {
+			command_channel <- move_down
+		} else {
+			command_channel <- stop
+		}
+	} else if Elev.Dir == STOPMOTOR {
+		for i := Elev.Floor + 1; i < N_FLOOR; i++ {
+			if orders.Elev_queue.ORDER_UP[i] == 1 || orders.Elev_queue.ORDER_DOWN[i] == 1 || orders.Elev_queue.ORDER_INSIDE[i] == 1 {
+				command_channel <- move_up
+			}
+		}
+		for i := 0; i < Elev.Floor; i++ {
+			if orders.Elev_queue.ORDER_UP[i] == 1 || orders.Elev_queue.ORDER_DOWN[i] == 1 || orders.Elev_queue.ORDER_INSIDE[i] == 1 {
+				command_channel <- move_down
+			}
+		}
+		if orders.Elev_queue.ORDER_UP[Elev.Floor] == 1 || orders.Elev_queue.ORDER_DOWN[Elev.Floor] == 1 || orders.Elev_queue.ORDER_INSIDE[Elev.Floor] == 1 {
+			command_channel <- stop
+		}
+	}
+}
+
+func command_manager(command_channel chan int, from_SM chan UDPMessage) {
+	for {
+		select {
+		case command := <-command_channel:
+			switch command {
+			case stop:
+				Elev_set_motor_direction(STOPMOTOR)
+				Elev.Dir = STOPMOTOR
+				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: STOPMOTOR}
+				break
+			case move_up:
+				Elev_set_motor_direction(UP)
+				Elev.Dir = UP
+				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: UP}
+				break
+			case move_down:
+				Elev_set_motor_direction(DOWN)
+				Elev.Dir = DOWN
+				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor, Dir: DOWN}
+				break
+			}
+		}
+	}
+}
+
+func event_manager(ext_order_channel chan orders.External_order, position_channel chan int, command_channel chan int, from_SM chan UDPMessage, to_SM chan UDPMessage) {
+	elev := Make_elev_manager()
+	for {
+		select {
+		case message := <-to_SM:
+			switch message.MessageId {
+			case Elev_state_update:
+				elev.Set_elev_floor_and_direction(message)
+			case Elev_add:
+				elev.Add_elevator(message)
+				from_SM <- UDPMessage{MessageId: Elev_state_update, Floor: Elev.Floor}
+				break
+			case Elev_delete:
+				Println(message.Source)
+				elev.Delete_elevator(message.Source)
+				if len(elev.All_elevators) == 1 {
+					for i := 0; i < N_FLOOR; i++ {
+						if orders.Order_in_floor(i) == false {
+							orders.Clear_ext_light(i)
+						}
+					}
+				}
+			case New_order:
+				if !elev.Check_if_order_in_floor(message) {
+					orders.Set_ext_light(message.Order)
+					if elev.Self_id == elev.Master {
+						from_SM <- UDPMessage{MessageId: Order_assigned, Target: elev.Assign_external_order(message.Order), Order: message.Order, Floor: Elev.Floor}
+					}
+				}
+				break
+			case Order_assigned:
+				if message.Target == elev.Self_id {
+					orders.Place_order(message.Order)
+				}
+				break
+			case Order_completed:
+				elev.Clear_external_order(message)
+				orders.Clear_ext_light(message.Floor)
+				break
+			case Elev_dead:
+				if elev.Self_id == elev.Master {
+					elev.Delete_elevator(message.Source)
+					best_elev, temp_order := elev.Reassign_external_orders(message)
+					from_SM <- UDPMessage{MessageId: Order_assigned, Target: best_elev, Order: temp_order}
+					Println(message.Source, " is crashing")
+				}
+			}
+		case current_floor := <-position_channel:
+			Elev.Floor = current_floor
+			should_stop(current_floor, Elev.Dir, command_channel, from_SM)
+			get_next_direction(command_channel)
+
+		case ext_order := <-ext_order_channel:
+			from_SM <- UDPMessage{MessageId: New_order, Order: ext_order}
+		}
+	}
+}
+
+func stop_at_floor() {
+	orders.Clear_orders_at_floor(Elev.Floor)
+	orders.Clear_lights_at_floor(Elev.Floor)
+	Elev_set_motor_direction(STOPMOTOR)
+	if Elev.Floor == 0 {
+		Elev.Dir = UP
+	}
+	if Elev.Floor == N_FLOOR-1 {
+		Elev.Dir = DOWN
+	}
+	Elev_set_door_open_lamp(1)
+	Sleep(2 * Second)
+	Elev_set_door_open_lamp(0)
 }

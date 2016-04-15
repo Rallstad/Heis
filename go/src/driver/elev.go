@@ -35,7 +35,6 @@ func Elev_init() {
 	C.elev_init()
 	for Elev_get_floor_sensor_signal() == -1 {
 		Elev_set_motor_direction(DOWN)
-
 	}
 	Elev_set_motor_direction(STOPMOTOR)
 	fmt.Println("--------------------------------------------------")

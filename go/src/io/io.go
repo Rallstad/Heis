@@ -12,7 +12,7 @@ import "fmt"
 func IO_init() int {
 	io_success := int(C.io_init())
 	if io_success == 0 {
-		fmt.Println("Error during IO init")
+		fmt.Println("Error during IO initialization")
 		return io_success
 	}
 	return io_success
