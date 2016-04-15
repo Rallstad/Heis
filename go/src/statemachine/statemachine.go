@@ -238,7 +238,7 @@ func Event_manager(ext_order_channel chan orders.External_order, order_channel c
 				if len(elev.All_elevators) == 1 {
 					for i := 0; i < N_FLOOR; i++ {
 						if orders.Order_in_floor(i) == false {
-							Clear_ext_light(i)
+							orders.Clear_ext_light(i)
 						}
 					}
 					//orders.Clear_ext_lights_in_floors_without_order()
