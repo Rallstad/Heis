@@ -26,12 +26,12 @@ func Init_orders() {
 	for i := 0; i < N_FLOOR; i++ {
 		Elev_queue.ORDER_UP[i] = 0
 		Elev_queue.ORDER_DOWN[i] = 0
-		//Elev_queue.ORDER_INSIDE[i] = 0
 	}
+
 	Elev_queue.ORDER_UP[N_FLOOR-1] = -1
 	Elev_queue.ORDER_DOWN[0] = -1
 	data, _ := ioutil.ReadFile("inside_orders.txt")
-	//Println(dat)
+
 	for order := 0; order < 8; order += 2 {
 		if data[order] == 49 {
 			Elev_queue.ORDER_INSIDE[order/2] = 1
@@ -44,7 +44,6 @@ func Register_order(order chan External_order) {
 		Register_order_up(order)
 		Register_order_down(order)
 		Register_order_inside()
-
 		Set_light()
 		Sleep(100 * Millisecond)
 	}
@@ -54,7 +53,6 @@ func Register_order_up(order chan External_order) {
 	for i := 0; i < N_FLOOR-1; i++ {
 		if Elev_get_button_signal(BUTTON_UP, i) > 0 {
 			order <- External_order{Floor: i, Button_type: BUTTON_UP}
-			Println("SOMEONE PRESSED THE ORDER UP BUTTON IN FLOOR ", i, "!!!!!!!!!!!!!")
 			Sleep(100 * Millisecond)
 		}
 	}
@@ -64,26 +62,20 @@ func Register_order_down(order chan External_order) {
 	for i := 1; i < N_FLOOR; i++ {
 		if Elev_get_button_signal(BUTTON_DOWN, i) > 0 {
 			order <- External_order{Floor: i, Button_type: BUTTON_DOWN}
-			Println("SOMEONE PRESSED THE ORDER DOWN BUTTON IN FLOOR ", i, "!!!!!!!!!!!!!")
 			Sleep(100 * Millisecond)
 		}
 	}
 }
 
 func Register_order_inside() {
-
 	for i := 0; i < N_FLOOR; i++ {
 		if Elev_get_button_signal(BUTTON_INSIDE, i) > 0 {
 			Elev_queue.ORDER_INSIDE[i] = 1
-
 		}
-		//file.WriteString(strings.TrimSpace(strconv.Itoa(Elev_queue.ORDER_INSIDE[i])) + "\n")
-		//ioutil.WriteFile("internal_orders.txt", []byte(strconv.Itoa(i))+"\n", 0666)
 	}
 }
 
 func Place_order(order External_order) {
-	Println("Placing order ", order.Button_type, " in floor ", order.Floor)
 	if order.Button_type == BUTTON_UP {
 		Elev_queue.ORDER_UP[order.Floor] = 1
 	}
@@ -93,7 +85,6 @@ func Place_order(order External_order) {
 }
 
 func Calculate_cost(elev_pos int, elev_dir Elev_dir, order External_order) int {
-
 	cost := 0
 	if elev_pos == order.Floor && elev_dir == STOPMOTOR {
 		return cost
@@ -161,7 +152,6 @@ func No_orders() int {
 			return 0
 		}
 	}
-	//	Println("NO MORE ORDERS")
 	return 1
 }
 
@@ -234,10 +224,24 @@ func Clear_all_lights() {
 	}
 
 }
+
+func Order_in_floor(floor int) bool {
+	if Elev_queue.ORDER_DOWN[floor] == 1 || Elev_queue.ORDER_UP[floor] == 1 {
+		return true
+	}
+	return false
+}
+
 func Clear_ext_light(floor int) {
-	Println("Clearing external light in floor", floor) //, " ,button: ", order.Button_type)
-	Elev_set_button_lamp(BUTTON_UP, floor, 0)
-	Elev_set_button_lamp(BUTTON_DOWN, floor, 0)
+	if floor == 0 {
+		Elev_set_button_lamp(BUTTON_UP, floor, 0)
+	} else if floor == N_FLOOR-1 {
+		Elev_set_button_lamp(BUTTON_DOWN, floor, 0)
+	} else if 0 < floor && floor < N_FLOOR-1 {
+		Elev_set_button_lamp(BUTTON_UP, floor, 0)
+		Elev_set_button_lamp(BUTTON_DOWN, floor, 0)
+	}
+
 }
 
 func Clear_ext_lights_in_floors_without_order() {

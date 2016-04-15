@@ -9,17 +9,13 @@ import "C"
 
 import "fmt"
 
-
-
 func IO_init() int {
 	io_success := int(C.io_init())
 	if io_success == 0 {
-		fmt.Println("error")
+		fmt.Println("Error during IO init")
 		return io_success
-
 	}
 	return io_success
-
 }
 
 func IO_set_bit(channel int) {

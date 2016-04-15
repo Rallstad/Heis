@@ -51,7 +51,7 @@ func (elev *Elev_manager) Set_elev_floor_and_direction(message UDPMessage) {
 	}
 }
 
-func (elev *Elev_manager) Add_elevator(message UDPMessage) { //might need to_network channel
+func (elev *Elev_manager) Add_elevator(message UDPMessage) {
 	elev.All_elevators[message.Source] = new(Elevator)
 	Println("Elevator ", message.Source, " is added")
 	elev.choose_master()
@@ -67,10 +67,6 @@ func (elev *Elev_manager) Assign_external_order(order External_order) int {
 	elev_cost := make(map[int]int)
 	for elevator, _ := range elev.All_elevators {
 		elev_cost[elevator] = Calculate_cost(elev.All_elevators[elevator].Floor, elev.All_elevators[elevator].Dir, order)
-		Println("Cost for ", elevator, ": ", elev_cost[elevator])
-		Println("Elevator ", elevator, "is on floor", elev.All_elevators[elevator].Floor)
-		Println("Elevator ", elevator, "has direction", elev.All_elevators[elevator].Dir)
-		Println("")
 	}
 	best_elevator := -1
 	min_cost := 1000
@@ -86,7 +82,7 @@ func (elev *Elev_manager) Assign_external_order(order External_order) int {
 }
 
 func (elev *Elev_manager) Check_if_order_in_floor(message UDPMessage) bool {
-	if elev.External_orders[message.Order.Button_type][message.Order.Floor] > 0 { /////kanskje denne skal kunne være 1/2 ut ifra status:knapp trykt, heis på vei
+	if elev.External_orders[message.Order.Button_type][message.Order.Floor] > 0 {
 		return true
 	}
 	return false
@@ -105,7 +101,6 @@ func (elev *Elev_manager) Clear_external_order(message UDPMessage) {
 }
 
 func (elev *Elev_manager) Reassign_external_orders(message UDPMessage) (int, External_order) {
-	Println("Reassigning")
 	for button := 0; button < 2; button++ {
 		for floor := 0; floor < N_FLOOR; floor++ {
 			if elev.External_orders[button][floor] == message.Source {
